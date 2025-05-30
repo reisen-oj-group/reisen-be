@@ -7,7 +7,13 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token string    `json:"token"`
+	Token string   `json:"token"`
+	User  UserInfo `json:"user"`
+}
+
+type MeRequest struct {}
+
+type MeResponse struct {
 	User  UserInfo `json:"user"`
 }
 

@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"reisen-be/internal/model"
@@ -35,8 +34,6 @@ func (c *TestdataController) UploadTestData(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	log.Println("problemId: ", req.ProblemID)
 
 	// 保存上传文件
 	uploadPath := os.TempDir() + "/upload_" + strconv.FormatUint(uint64(req.ProblemID), 10) + "_" + strconv.FormatInt(time.Now().Unix(), 10) + ".zip"

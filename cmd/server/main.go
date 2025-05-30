@@ -38,7 +38,10 @@ func main() {
 	problemService := service.NewProblemService(problemRepo)
 	judgeService := service.NewJudgeService(submissionRepo, problemRepo, userRepo, "/var/testdata")
 	testdataService := service.NewTestdataService(problemRepo, "/var/testdata")
+	fileService := service.NewFileService("/var/www/reisen/file")
+	userService := service.NewUserService(userRepo)
 	migrationService := service.NewGormMigrationService(db)
+
 
 	// Migrate
 	migrationService.RunMigrations()
@@ -49,6 +52,8 @@ func main() {
 	problemController := controller.NewProblemController(problemService)
 	recordController := controller.NewRecordController(judgeService)
 	testdataController := controller.NewTestdataController(testdataService)
+	avatarController := controller.NewAvatarController(fileService, userRepo)
+	userController := controller.NewUserController(userService)
 
 	// Initialize router
 	router := gin.Default()
@@ -67,22 +72,31 @@ func main() {
     public.POST("/record", recordController.GetRecordDetail)
     public.POST("/record/list", recordController.ListRecords)
 
+    public.POST("/user", userController.GetUser)
 	}
 
 	// Protected routes
 	protected := router.Group("/api")
 	protected.Use(middleware.AuthMiddleware(authService))
 	{
-		protected.POST("/logout", authController.Logout)
-		protected.POST("/problem/edit", problemController.CreateOrUpdateProblem)
+		protected.POST("/auth/me", authController.Me)
+		protected.POST("/auth/logout", authController.Logout)
     protected.POST("/problem/submit", recordController.SubmitCode)
-    protected.POST("/problem/delete", problemController.DeleteProblem)
+		protected.POST("/avatar/upload", avatarController.UploadAvatar)
 
-		protected.POST("/testdata", testdataController.DownloadTestData)
-		protected.POST("/testdata/upload", testdataController.UploadTestData)
-		protected.POST("/testdata/delete", testdataController.DeleteTestData)
-		protected.POST("/testdata/config", testdataController.GetConfig)
-		protected.POST("/testdata/config/upload", testdataController.UploadConfig)
+		juryRoutes := protected.Group("")
+    juryRoutes.Use(middleware.RoleRequired(model.RoleJury))
+    {
+			juryRoutes.POST("/problem/edit", problemController.CreateOrUpdateProblem)
+    	juryRoutes.POST("/problem/delete", problemController.DeleteProblem)
+
+			juryRoutes.POST("/testdata/upload", testdataController.UploadTestData)
+			juryRoutes.POST("/testdata/delete", testdataController.DeleteTestData)
+			juryRoutes.POST("/testdata/config/upload", testdataController.UploadConfig)
+    }
+		
+		adminRoutes := protected.Group("")
+    adminRoutes.Use(middleware.RoleRequired(model.RoleAdmin))
 	}
 
 	// Start server

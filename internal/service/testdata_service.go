@@ -46,7 +46,7 @@ func (s *TestdataService) UploadTestdata(problemID model.ProblemId, filePath str
 		return err
 	}
 
-	// 解压ZIP文件到data目录
+	// 解压 ZIP 文件到 data 目录
 	dataPath := s.getDataPath(problemID)
 	if err := os.RemoveAll(dataPath); err != nil {
 		return err
@@ -66,7 +66,7 @@ func (s *TestdataService) UploadTestdata(problemID model.ProblemId, filePath str
 func (s *TestdataService) DownloadTestdata(problemID model.ProblemId) (string, error) {
 	dataPath := s.getDataPath(problemID)
 	if _, err := os.Stat(dataPath); os.IsNotExist(err) {
-		return "", errors.New("test data not found")
+		return "", errors.New("暂无数据")
 	}
 
 	// 创建临时ZIP文件
@@ -172,7 +172,7 @@ func unzip(src, dest string) error {
 	return nil
 }
 
-// 辅助函数: 压缩目录为ZIP
+// 辅助函数: 压缩目录为 ZIP
 func zipDir(source, target string) error {
 	zipfile, err := os.Create(target)
 	if err != nil {

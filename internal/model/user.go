@@ -26,3 +26,11 @@ type User struct {
 func (User) TableName() string {
 	return "users"
 }
+
+type UserRequest struct {
+	User     UserId   `json:"user"`
+}
+
+type UserResponse struct {
+	User     UserInfo `json:"user"`
+}

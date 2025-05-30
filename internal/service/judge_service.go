@@ -29,7 +29,7 @@ func NewJudgeService(
 		submissionRepo: submissionRepo,
 		problemRepo:    problemRepo,
 		userRepo:       userRepo,
-		dataDir:       dataDir,
+		dataDir:        dataDir,
 	}
 }
 

@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"reisen-be/internal/model"
 	"reisen-be/internal/service"
 	"strings"
 
@@ -30,5 +31,16 @@ func AuthMiddleware(authService *service.AuthService) gin.HandlerFunc {
 
 		ctx.Set("user", user)
 		ctx.Next()
+	}
+}
+
+func RoleRequired(minRole model.Role) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user := c.MustGet("user").(model.User)
+		
+		if user.Role < minRole {
+			c.AbortWithStatusJSON(403, gin.H{"error": "forbidden"})
+		}
+		c.Next()
 	}
 }

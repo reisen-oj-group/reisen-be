@@ -17,6 +17,32 @@ func NewAuthController(authService *service.AuthService) *AuthController {
 	return &AuthController{authService: authService}
 }
 
+
+func (s *AuthController) Me(ctx *gin.Context) {
+	// 从上下文中获取用户
+	userRaw, exists := ctx.Get("user")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	user, ok := userRaw.(*model.User)
+	if !ok {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user type"})
+			return
+	}
+
+	ctx.JSON(http.StatusOK, model.MeResponse{
+		User: model.UserInfo{
+			ID:       user.ID,
+			Name:     user.Name,
+			Role:     int(user.Role),
+			Register: user.Register.Format(time.RFC3339),
+			Avatar:   user.Avatar,
+		},
+	})
+}
+
 func (c *AuthController) Login(ctx *gin.Context) {
 	var req model.LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {

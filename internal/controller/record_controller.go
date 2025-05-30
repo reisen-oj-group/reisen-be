@@ -34,19 +34,9 @@ func (c *RecordController) SubmitCode(ctx *gin.Context) {
 	}
 
 	// 从上下文中获取用户
-	user, exists := ctx.Get("user")
-	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
+	user := ctx.MustGet("user").(model.User)
 
-	userObj, ok := user.(*model.User)
-	if !ok {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user type"})
-			return
-	}
-
-	record, err := c.judgeService.SubmitCode(&req, userObj.ID)
+	record, err := c.judgeService.SubmitCode(&req, user.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
