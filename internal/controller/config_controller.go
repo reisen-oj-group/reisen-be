@@ -12,14 +12,7 @@ func NewConfigController() *ConfigController {
     return &ConfigController{}
 }
 
-// SyncConfig 同步配置文件
-// @Summary 同步配置文件
-// @Description 获取系统配置信息
-// @Tags 系统配置
-// @Accept json
-// @Produce json
-// @Success 200 {object} model.SyncConfigResponse
-// @Router /api/sync-config [get]
+// 同步配置文件
 func (c *ConfigController) SyncConfig(ctx *gin.Context) {
     // 直接从配置中获取数据
     response := configs.SystemConfig

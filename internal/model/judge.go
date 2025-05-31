@@ -133,15 +133,23 @@ type JudgeResponse struct {
 
 // RecordFilterParams 记录过滤参数
 type RecordFilterParams struct {
-	User    *int      `json:"user,omitempty"`
-	Problem *int      `json:"problem,omitempty"`
-	Lang    *string   `json:"lang,omitempty"`
-	Verdict *VerdictId `json:"verdict,omitempty"`
+	User    *UserId     `json:"user,omitempty"`
+	Problem *ProblemId  `json:"problem,omitempty"`
+	Lang    *CodeLangId `json:"lang,omitempty"`
+	Verdict *VerdictId  `json:"verdict,omitempty"`
+}
+
+// RecordFilterParamsRaw 记录传递过来的过滤参数
+type RecordFilterParamsRaw struct {
+	User    *string     `json:"user,omitempty"`
+	Problem *ProblemId  `json:"problem,omitempty"`
+	Lang    *CodeLangId `json:"lang,omitempty"`
+	Verdict *VerdictId  `json:"verdict,omitempty"`
 }
 
 // RecordListRequest 记录列表请求
 type RecordListRequest struct {
-	RecordFilterParams
+	RecordFilterParamsRaw
 	Page int `json:"page"`
 }
 

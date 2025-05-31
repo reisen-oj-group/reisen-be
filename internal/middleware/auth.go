@@ -36,7 +36,7 @@ func AuthMiddleware(authService *service.AuthService) gin.HandlerFunc {
 
 func RoleRequired(minRole model.Role) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		user := c.MustGet("user").(model.User)
+		user := c.MustGet("user").(*model.User)
 		
 		if user.Role < minRole {
 			c.AbortWithStatusJSON(403, gin.H{"error": "forbidden"})

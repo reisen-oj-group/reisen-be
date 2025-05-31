@@ -40,7 +40,7 @@ func (s *ProblemService) ListProblems(filter *model.ProblemFilter, page, pageSiz
 	return s.problemRepo.List(filter, page, pageSize)
 }
 
-func (s *ProblemService) DeleteProblem(id int) error {
+func (s *ProblemService) DeleteProblem(id model.ProblemId) error {
 	return s.problemRepo.Delete(id)
 }
 

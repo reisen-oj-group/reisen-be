@@ -73,6 +73,7 @@ type Problem struct {
 	CountTotal   int                    `gorm:"default:0" json:"countTotal"`
 	Difficulty   int                    `gorm:"not null" json:"difficulty"`
 	Tags         []ProblemTag           `gorm:"foreignKey:ProblemID" json:"tags,omitempty"`
+	Provider     UserId                 `gorm:"not null" json:"provider"`
 	
 	// 新增测试数据相关字段
 	HasTestdata bool      `gorm:"default:false" json:"hasTestdata"`
@@ -127,6 +128,7 @@ type ProblemFilter struct {
 	MaxDifficulty *int
 	Tags          []int
 	Keywords      *string
+	Provider      *UserId
 	Status        *ProblemStatus
 }
 
@@ -136,6 +138,14 @@ type ProblemEditRequest struct {
 
 type ProblemEditResponse struct {
 	Problem Problem `json:"problem"`
+}
+
+type ProblemDeleteRequest struct {
+	Problem ProblemId `json:"problem"`
+}
+
+type ProblemDeleteResponse struct {
+	
 }
 
 type ProblemRequest struct {
@@ -149,12 +159,9 @@ type ProblemResponse struct {
 }
 
 type ProblemListRequest struct {
+	ProblemFilter
 	Page          *int    `json:"page,omitempty"`
 	User          *UserId `json:"user,omitempty"`
-	MinDifficulty *int    `json:"minDifficulty,omitempty"`
-	MaxDifficulty *int    `json:"maxDifficulty,omitempty"`
-	Tags          []int   `json:"tags,omitempty"`
-	Keywords      *string `json:"keywords,omitempty"`
 }
 
 type ProblemListResponse struct {

@@ -1,33 +1,40 @@
 package model
 
 type LoginRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 	Remember bool   `json:"remember"`
 }
 
 type LoginResponse struct {
 	Token string   `json:"token"`
-	User  UserInfo `json:"user"`
+	User  User     `json:"user"`
 }
 
 type MeRequest struct {}
 
 type MeResponse struct {
-	User  UserInfo `json:"user"`
-}
-
-type UserInfo struct {
-	ID       UserId `json:"id"`
-	Name     string `json:"name"`
-	Role     int    `json:"role"`
-	Register string `json:"register"`
-	Avatar   string `json:"avatar,omitempty"`
+	User  User     `json:"user"`
 }
 
 type RegisterRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 type RegisterResponse struct{}
+
+type CreateRequest struct {
+	User User       `json:"user"`
+	Password string `json:"password"`
+}
+
+type CreateResponse struct{}
+
+type SetPasswordRequest struct {
+	User        UserId `json:"user"`
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
+type SetPasswordResponse struct{}

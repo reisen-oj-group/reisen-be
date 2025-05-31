@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"reisen-be/internal/model"
 	"reisen-be/internal/service"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,16 +16,7 @@ func NewProblemController(problemService *service.ProblemService) *ProblemContro
 	return &ProblemController{problemService: problemService}
 }
 
-// CreateOrUpdateProblem 创建或更新题目
-// @Summary 创建或更新题目
-// @Description 创建或更新题目信息
-// @Tags 题目管理
-// @Accept json
-// @Produce json
-// @Security ApiKeyAuth
-// @Param request body model.ProblemEditRequest true "题目信息"
-// @Success 200 {object} model.ProblemEditResponse
-// @Router /api/problem/edit [post]
+// 创建或更新题目
 func (c *ProblemController) CreateOrUpdateProblem(ctx *gin.Context) {
 	var req model.ProblemEditRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -40,10 +30,13 @@ func (c *ProblemController) CreateOrUpdateProblem(ctx *gin.Context) {
 		tags = append(tags, model.ProblemTag{TagID: tag.TagID})
 	}
 	req.Problem.Tags = tags
+	
+	user := ctx.MustGet("user").(*model.User)
 
 	var err error
 	if req.Problem.ID == 0 {
 		// 创建题目
+		req.Problem.Provider = user.ID
 		err = c.problemService.CreateProblem(&req.Problem)
 	} else {
 		// 更新题目
@@ -60,15 +53,7 @@ func (c *ProblemController) CreateOrUpdateProblem(ctx *gin.Context) {
 	})
 }
 
-// GetProblem 获取题目详情
-// @Summary 获取题目详情
-// @Description 根据ID获取题目详情
-// @Tags 题目管理
-// @Accept json
-// @Produce json
-// @Param request body model.ProblemRequest true "题目ID"
-// @Success 200 {object} model.ProblemResponse
-// @Router /api/problem [post]
+// 获取题目详情
 func (c *ProblemController) GetProblem(ctx *gin.Context) {
     var req model.ProblemRequest
     if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -99,20 +84,31 @@ func (c *ProblemController) GetProblem(ctx *gin.Context) {
     })
 }
 
-// ListProblems 获取题目列表
-// @Summary 获取题目列表
-// @Description 获取题目列表，支持分页和过滤
-// @Tags 题目管理
-// @Accept json
-// @Produce json
-// @Param request body model.ProblemListRequest true "过滤条件"
-// @Success 200 {object} model.ProblemListResponse
-// @Router /api/problem/list [post]
-func (c *ProblemController) ListProblems(ctx *gin.Context) {
+// 获取题目列表
+func (c *ProblemController) ListProblems(ctx *gin.Context, isPublic bool, isMine bool) {
 	var req model.ProblemListRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	if isPublic {
+		// 强制设置状态为 public
+		req.Status = new(model.ProblemStatus)
+		*req.Status = "public"
+	} else {
+		user := ctx.MustGet("user").(*model.User)
+
+		if isMine {
+			// 强制设置提供者为 user.ID
+			req.Provider = new(model.UserId)
+			*req.Provider = user.ID
+		} else {
+			if user.Role < model.RoleAdmin {
+				ctx.JSON(http.StatusForbidden, gin.H{"error": "No permission"})
+				return
+			}
+		}
 	}
 
 	page := 1
@@ -122,14 +118,9 @@ func (c *ProblemController) ListProblems(ctx *gin.Context) {
 	pageSize := 50
 
 	// 转换前端请求为过滤条件
-	filter := &model.ProblemFilter{
-		MinDifficulty: req.MinDifficulty,
-		MaxDifficulty: req.MaxDifficulty,
-		Tags:          req.Tags,
-		Keywords:      req.Keywords,
-	}
+	filter := req.ProblemFilter
 
-	problems, total, err := c.problemService.ListProblems(filter, page, pageSize)
+	problems, total, err := c.problemService.ListProblems(&filter, page, pageSize)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -141,14 +132,27 @@ func (c *ProblemController) ListProblems(ctx *gin.Context) {
 	})
 }
 
+func (c *ProblemController) ListProblemsPublic(ctx *gin.Context) {
+	c.ListProblems(ctx, true, false)
+}
+
+func (c *ProblemController) ListProblemsMine(ctx *gin.Context) {
+	c.ListProblems(ctx, false, true)
+}
+
+func (c *ProblemController) ListProblemsAdmin(ctx *gin.Context) {
+	c.ListProblems(ctx, false, false)
+}
+
+// 删除试题
 func (c *ProblemController) DeleteProblem(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid problem id"})
+	var req model.ProblemDeleteRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := c.problemService.DeleteProblem(id); err != nil {
+	if err := c.problemService.DeleteProblem(req.Problem); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

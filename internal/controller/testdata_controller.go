@@ -21,7 +21,7 @@ func NewTestdataController(testdataService *service.TestdataService) *TestdataCo
 	}
 }
 
-// UploadTestData 上传测试数据
+// 上传测试数据
 func (c *TestdataController) UploadTestData(ctx *gin.Context) {
 	file, err := ctx.FormFile("file")
 	if err != nil {
@@ -52,7 +52,7 @@ func (c *TestdataController) UploadTestData(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
-// DownloadTestData 下载测试数据
+// 下载测试数据
 func (c *TestdataController) DownloadTestData(ctx *gin.Context) {
 	var req model.TestdataDownloadRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -76,7 +76,7 @@ func (c *TestdataController) DownloadTestData(ctx *gin.Context) {
 	}()
 }
 
-// DeleteTestData 删除测试数据
+// 删除测试数据
 func (c *TestdataController) DeleteTestData(ctx *gin.Context) {
 	var req model.TestdataDeleteRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -92,7 +92,7 @@ func (c *TestdataController) DeleteTestData(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
-// UploadConfig 上传配置文件
+// 上传配置文件
 func (c *TestdataController) UploadConfig(ctx *gin.Context) {
 	var req model.TestdataConfigUploadRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -108,7 +108,7 @@ func (c *TestdataController) UploadConfig(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
-// GetConfig 获取配置文件
+// 获取配置文件
 func (c *TestdataController) GetConfig(ctx *gin.Context) {
 	var req model.TestdataConfigRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {

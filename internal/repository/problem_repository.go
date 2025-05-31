@@ -67,6 +67,9 @@ func (r *ProblemRepository) List(filter *model.ProblemFilter, page, pageSize int
 		if filter.MaxDifficulty != nil && *filter.MaxDifficulty > 0 {
 			query = query.Where("difficulty <= ?", filter.MaxDifficulty)
 		}
+		if filter.Provider != nil && *filter.Provider > 0 {
+			query = query.Where("provider = ?", filter.Provider)
+		}
 		if len(filter.Tags) > 0 {
 			query = query.Joins("JOIN problem_tags ON problem_tags.problem_id = problems.id").
 				Where("problem_tags.tag_id IN ?", filter.Tags)
@@ -92,7 +95,7 @@ func (r *ProblemRepository) List(filter *model.ProblemFilter, page, pageSize int
 	}
 
 	// 转换为ProblemCore格式
-	var cores []model.ProblemCore
+	cores := make([]model.ProblemCore, 0)
 	for _, p := range problems {
 		var tagIDs []model.TagId
 		for _, tag := range p.Tags {
@@ -116,15 +119,31 @@ func (r *ProblemRepository) List(filter *model.ProblemFilter, page, pageSize int
 	return cores, total, nil
 }
 
-func (r *ProblemRepository) Delete(id int) error {
+func (r *ProblemRepository) Delete(problemID model.ProblemId) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		// 先删除标签关联
-		if err := tx.Where("problem_id = ?", id).Delete(&model.ProblemTag{}).Error; err != nil {
+		if err := tx.Where("problem_id = ?", problemID).Delete(&model.ProblemTag{}).Error; err != nil {
 			return err
 		}
 		// 再删除题目
-		return tx.Delete(&model.Problem{}, id).Error
+		return tx.Delete(&model.Problem{}, problemID).Error
 	})
+}
+
+func (r *ProblemRepository) IncreaseSubmitTotal(problemID model.ProblemId) error {
+	return r.db.
+		Model(&model.Problem{}).
+		Where("id = ?", problemID).
+		Update("count_total", gorm.Expr("count_total + ?", 1)).
+		Error
+}
+
+func (r *ProblemRepository) IncreaseSubmitCorrect(problemID model.ProblemId) error {
+	return r.db.
+		Model(&model.Problem{}).
+		Where("id = ?", problemID).
+		Update("count_correct", gorm.Expr("count_correct + ?", 1)).
+		Error
 }
 
 func (r *ProblemRepository) UpdateTestdataStatus(problemID model.ProblemId, hasData, hasConfig bool) error {

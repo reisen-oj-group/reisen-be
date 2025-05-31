@@ -14,9 +14,9 @@ var SystemConfig = model.SyncConfigResponse{
         "zh-TW": {ID: "zh-TW", Description: "繁体中文"},
     },
     CodeLangs: map[string]model.CodeLang{
-        "cpp":    {ID: "cpp", Ext: []string{".cpp"}, Description: "C++17 (GCC 9)", Ratio: 1},
+        "cpp":    {ID: "cpp", Ext: []string{".cpp", ".cc", ".cxx"}, Description: "C++ 11", Ratio: 1},
         "java":   {ID: "java", Ext: []string{".java"}, Description: "Java 11", Ratio: 2},
-        "python": {ID: "python", Ext: []string{".python"}, Description: "Python 3.8", Ratio: 3},
+        "python": {ID: "python", Ext: []string{".py"}, Description: "Python 3.8", Ratio: 3},
     },
     Verdicts: map[string]model.Verdict{
         "AC":  {ID: "AC", Description: "Accepted", Abbr: "AC", Color: "#67C23A"},

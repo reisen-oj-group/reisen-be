@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reisen-be/internal/model"
 	"reisen-be/internal/repository"
+	"strconv"
 	"time"
 )
 
@@ -355,14 +356,14 @@ func (s *JudgeService) SubmitCode(req *model.JudgeRequest, userID model.UserId) 
 	}
 
 	// 8. 更新题目统计信息
-	// if submission.Verdict == model.VerdictAC {
-	// 	if err := s.problemRepo.IncrementCorrectCount(submission.ProblemID); err != nil {
-	// 		return nil, err
-	// 	}
-	// }
-	// if err := s.problemRepo.IncrementTotalCount(submission.ProblemID); err != nil {
-	// 	return nil, err
-	// }
+	if submission.Verdict == model.VerdictAC {
+		if err := s.problemRepo.IncreaseSubmitCorrect(submission.ProblemID); err != nil {
+			return nil, err
+		}
+	}
+	if err := s.problemRepo.IncreaseSubmitTotal(submission.ProblemID); err != nil {
+		return nil, err
+	}
 
 	// 9. 获取用户信息
 	user, err := s.userRepo.GetByID(userID)
@@ -466,8 +467,43 @@ func (s *JudgeService) GetSubmissionDetail(id int64) (*model.SubmissionFull, err
 	}, nil
 }
 
+// ConvertFilterParamsRaw 将原始参数转换为处理后的参数
+func (s *JudgeService) ConvertFilterParamsRaw(raw *model.RecordFilterParamsRaw) (*model.RecordFilterParams, error) {
+	if raw == nil {
+		return nil, nil
+	}
+
+	params := &model.RecordFilterParams{
+			Problem: raw.Problem,
+			Lang:    raw.Lang,
+			Verdict: raw.Verdict,
+	}
+
+	// 处理 User 字段转换
+	if raw.User != nil {
+		// 尝试解析为数字 ID
+		if userID, err := strconv.Atoi(*raw.User); err == nil {
+			params.User = (*model.UserId)(&userID)
+		} else {
+			// 如果是字符串，查询用户 ID
+			user, err := s.userRepo.FindByUsername(*raw.User)
+			if err != nil {
+					return nil, fmt.Errorf("failed to find user by name: %v", err)
+			}
+			params.User = &user.ID
+		}
+	}
+
+	return params, nil
+}
+
 // ListSubmissions 获取提交列表
-func (s *JudgeService) ListSubmissions(filter *model.RecordFilterParams, page, pageSize int) ([]model.SubmissionLite, int64, error) {
+func (s *JudgeService) ListSubmissions(filterRaw *model.RecordFilterParamsRaw, page, pageSize int) ([]model.SubmissionLite, int64, error) {
+	filter, err := s.ConvertFilterParamsRaw(filterRaw)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	submissions, total, err := s.submissionRepo.List(filter, page, pageSize)
 	if err != nil {
 		return nil, 0, err

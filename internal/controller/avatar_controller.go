@@ -21,16 +21,7 @@ func NewAvatarController(fileService *service.FileService, userRepo *repository.
 	}
 }
 
-// UploadAvatar 上传用户头像
-// @Summary 上传用户头像
-// @Description 上传用户头像图片
-// @Tags 用户管理
-// @Accept multipart/form-data
-// @Produce json
-// @Security ApiKeyAuth
-// @Param avatar formData file true "头像文件"
-// @Success 200 {object} model.User
-// @Router /api/avatar/upload [post]
+// 上传用户头像
 func (c *AvatarController) UploadAvatar(ctx *gin.Context) {
 	// 从JWT中获取用户ID
 	user := ctx.MustGet("user").(model.User)
