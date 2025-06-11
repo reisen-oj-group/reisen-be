@@ -81,10 +81,6 @@ type Submission struct {
 	Testcases      TestcaseList `gorm:"type:json" json:"testcases"`
 }
 
-func (Submission) TableName() string {
-	return "submission"
-}
-
 // SubmissionCore 提交记录核心信息
 type SubmissionCore struct {
 	ID             SubmissionId `json:"id"`
@@ -128,45 +124,45 @@ type JudgeRequest struct {
 
 // JudgeResponse 评测响应
 type JudgeResponse struct {
-	Record SubmissionId `json:"record"`
+	Submission SubmissionId `json:"submission"`
 }
 
-// RecordFilterParams 记录过滤参数
-type RecordFilterParams struct {
+// SubmissionFilterParams 记录过滤参数
+type SubmissionFilterParams struct {
 	User    *UserId     `json:"user,omitempty"`
 	Problem *ProblemId  `json:"problem,omitempty"`
 	Lang    *CodeLangId `json:"lang,omitempty"`
 	Verdict *VerdictId  `json:"verdict,omitempty"`
 }
 
-// RecordFilterParamsRaw 记录传递过来的过滤参数
-type RecordFilterParamsRaw struct {
+// SubmissionFilterParamsRaw 记录传递过来的过滤参数
+type SubmissionFilterParamsRaw struct {
 	User    *string     `json:"user,omitempty"`
 	Problem *ProblemId  `json:"problem,omitempty"`
 	Lang    *CodeLangId `json:"lang,omitempty"`
 	Verdict *VerdictId  `json:"verdict,omitempty"`
 }
 
-// RecordListRequest 记录列表请求
-type RecordListRequest struct {
-	RecordFilterParamsRaw
+// SubmissionListRequest 记录列表请求
+type SubmissionListRequest struct {
+	SubmissionFilterParamsRaw
 	Page int `json:"page"`
 }
 
-// RecordListResponse 记录列表响应
-type RecordListResponse struct {
+// SubmissionListResponse 记录列表响应
+type SubmissionListResponse struct {
 	Total   int             `json:"total"`
-	Records []SubmissionLite `json:"records"`
+	Submissions []SubmissionLite `json:"submissions"`
 }
 
-// RecordDetailRequest 记录详情请求
-type RecordDetailRequest struct {
+// SubmissionDetailRequest 记录详情请求
+type SubmissionDetailRequest struct {
 	ID int64 `json:"id"`
 }
 
-// RecordDetailResponse 记录详情响应
-type RecordDetailResponse struct {
-	Record SubmissionFull `json:"record"`
+// SubmissionDetailResponse 记录详情响应
+type SubmissionDetailResponse struct {
+	Submission SubmissionFull `json:"submission"`
 }
 
 // Result 题目结果

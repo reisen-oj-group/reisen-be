@@ -31,7 +31,7 @@ func (r *SubmissionRepository) GetByID(id int64) (*model.Submission, error) {
 	return &submission, nil
 }
 
-func (r *SubmissionRepository) List(filter *model.RecordFilterParams, page, pageSize int) ([]model.Submission, int64, error) {
+func (r *SubmissionRepository) List(filter *model.SubmissionFilterParams, page, pageSize int) ([]model.Submission, int64, error) {
 	var submissions []model.Submission
 	var total int64
 

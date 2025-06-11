@@ -468,12 +468,12 @@ func (s *JudgeService) GetSubmissionDetail(id int64) (*model.SubmissionFull, err
 }
 
 // ConvertFilterParamsRaw 将原始参数转换为处理后的参数
-func (s *JudgeService) ConvertFilterParamsRaw(raw *model.RecordFilterParamsRaw) (*model.RecordFilterParams, error) {
+func (s *JudgeService) ConvertFilterParamsRaw(raw *model.SubmissionFilterParamsRaw) (*model.SubmissionFilterParams, error) {
 	if raw == nil {
 		return nil, nil
 	}
 
-	params := &model.RecordFilterParams{
+	params := &model.SubmissionFilterParams{
 			Problem: raw.Problem,
 			Lang:    raw.Lang,
 			Verdict: raw.Verdict,
@@ -498,7 +498,7 @@ func (s *JudgeService) ConvertFilterParamsRaw(raw *model.RecordFilterParamsRaw) 
 }
 
 // ListSubmissions 获取提交列表
-func (s *JudgeService) ListSubmissions(filterRaw *model.RecordFilterParamsRaw, page, pageSize int) ([]model.SubmissionLite, int64, error) {
+func (s *JudgeService) ListSubmissions(filterRaw *model.SubmissionFilterParamsRaw, page, pageSize int) ([]model.SubmissionLite, int64, error) {
 	filter, err := s.ConvertFilterParamsRaw(filterRaw)
 	if err != nil {
 		return nil, 0, err

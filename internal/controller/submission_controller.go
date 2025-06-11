@@ -8,16 +8,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type RecordController struct {
+type SubmissionController struct {
 	judgeService *service.JudgeService
 }
 
-func NewRecordController(judgeService *service.JudgeService) *RecordController {
-	return &RecordController{judgeService: judgeService}
+func NewSubmissionController(judgeService *service.JudgeService) *SubmissionController {
+	return &SubmissionController{judgeService: judgeService}
 }
 
 // 提交代码评测
-func (c *RecordController) SubmitCode(ctx *gin.Context) {
+func (c *SubmissionController) SubmitCode(ctx *gin.Context) {
 	var req model.JudgeRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -27,53 +27,53 @@ func (c *RecordController) SubmitCode(ctx *gin.Context) {
 	// 从上下文中获取用户
 	user := ctx.MustGet("user").(*model.User)
 
-	record, err := c.judgeService.SubmitCode(&req, user.ID)
+	submission, err := c.judgeService.SubmitCode(&req, user.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, model.JudgeResponse{
-		Record: record.ID,
+		Submission: submission.ID,
 	})
 }
 
 // 获取评测记录详情
-func (c *RecordController) GetRecordDetail(ctx *gin.Context) {
-	var req model.RecordDetailRequest
+func (c *SubmissionController) GetSubmissionDetail(ctx *gin.Context) {
+	var req model.SubmissionDetailRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	record, err := c.judgeService.GetSubmissionDetail(req.ID)
+	submission, err := c.judgeService.GetSubmissionDetail(req.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, model.RecordDetailResponse{
-		Record: *record,
+	ctx.JSON(http.StatusOK, model.SubmissionDetailResponse{
+		Submission: *submission,
 	})
 }
 
 // 获取评测记录列表
-func (c *RecordController) ListRecords(ctx *gin.Context) {
-	var req model.RecordListRequest
+func (c *SubmissionController) ListSubmissions(ctx *gin.Context) {
+	var req model.SubmissionListRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	pageSize := 50
-	records, total, err := c.judgeService.ListSubmissions(&req.RecordFilterParamsRaw, req.Page, pageSize)
+	submissions, total, err := c.judgeService.ListSubmissions(&req.SubmissionFilterParamsRaw, req.Page, pageSize)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, model.RecordListResponse{
+	ctx.JSON(http.StatusOK, model.SubmissionListResponse{
 		Total:   int(total),
-		Records: records,
+		Submissions: submissions,
 	})
 }

@@ -45,7 +45,7 @@ func main() {
 	// Initialize controllers
 	configController := controller.NewConfigController()
 	problemController := controller.NewProblemController(problemService)
-	recordController := controller.NewRecordController(judgeService)
+	submissionController := controller.NewSubmissionController(judgeService)
 	testdataController := controller.NewTestdataController(testdataService)
 	avatarController := controller.NewAvatarController(fileService, userRepo)
 	authController := controller.NewAuthController(authService)
@@ -65,8 +65,8 @@ func main() {
     public.POST("/problem", problemController.GetProblem)
 		public.POST("/problem/list", problemController.ListProblemsPublic)
 
-    public.POST("/record", recordController.GetRecordDetail)
-    public.POST("/record/list", recordController.ListRecords)
+    public.POST("/submission", submissionController.GetSubmissionDetail)
+    public.POST("/submission/list", submissionController.ListSubmissions)
 
     public.POST("/user", userController.GetUser)
 	}
@@ -82,7 +82,7 @@ func main() {
 		protected.POST("/user/edit", userController.EditUser)
 		protected.POST("/user/delete", userController.DeleteUser)
 
-    protected.POST("/problem/submit", recordController.SubmitCode)
+    protected.POST("/problem/submit", submissionController.SubmitCode)
 		protected.POST("/problem/mine", problemController.ListProblemsMine)
 
 		protected.POST("/avatar/upload", avatarController.UploadAvatar)
@@ -103,7 +103,7 @@ func main() {
 		{
 			adminRoutes.POST("/user/all", userController.ListUsers)
 			adminRoutes.POST("/problem/all", problemController.ListProblemsAdmin)
-    	adminRoutes.POST("/record/all", recordController.ListRecords)
+    	adminRoutes.POST("/submission/all", submissionController.ListSubmissions)
 		}
 		
 		superRoutes := protected.Group("")

@@ -84,10 +84,6 @@ type Problem struct {
 	UpdatedAt    time.Time              `gorm:"autoUpdateTime" json:"updatedAt"`
 }
 
-func (Problem) TableName() string {
-	return "problem"
-}
-
 type ProblemCore struct {
 	ID           ProblemId     `json:"id"`
 	Type         ProblemType   `json:"type"`
