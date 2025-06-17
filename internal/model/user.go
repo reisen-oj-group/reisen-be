@@ -1,9 +1,5 @@
 package model
 
-import (
-	"time"
-)
-
 type Role int
 
 const (
@@ -14,12 +10,12 @@ const (
 )
 
 type User struct {
-	ID       UserId    `gorm:"primaryKey;autoIncrement" json:"id"`
-	Name     string    `gorm:"size:50;not null;unique"  json:"name"`
-	Password string    `gorm:"size:100;not null"        json:"-"`
-	Role     Role      `gorm:"default:0"                json:"role"`
-	Register time.Time `gorm:"autoCreateTime"           json:"register"`
-	Avatar   string    `gorm:"size:200"                 json:"avatar"`
+	BaseModel
+	ID       UserId `                      json:"id"`
+	Name     string `gorm:"size:50;unique" json:"name"`
+	Password string `gorm:"size:60"        json:"-"`
+	Role     Role   `gorm:"default:0"      json:"role"`
+	Avatar   string `gorm:"size:50"        json:"avatar"`
 }
 
 func (User) TableName() string {
@@ -36,16 +32,18 @@ type UserFilterParams struct {
 
 // UserFilterParamsRaw 记录传递过来的过滤参数
 type UserFilterParamsRaw struct {
-	User    *string     `json:"user,omitempty"`
-	Role    *Role       `json:"role,omitempty"`
+	User *string `json:"user,omitempty"`
+	Role *Role   `json:"role,omitempty"`
 }
 
+// 用户信息请求
 type UserRequest struct {
-	User     UserId   `json:"user"`
+	User UserId `json:"user"`
 }
 
+// 用户信息响应
 type UserResponse struct {
-	User     User     `json:"user"`
+	User User `json:"user"`
 }
 
 // 用户列表请求
@@ -56,28 +54,38 @@ type UserListRequest struct {
 
 // 用户列表响应
 type UserListResponse struct {
-	Total   int           `json:"total"`
-	Users   []User        `json:"users"`
+	Total int    `json:"total"`
+	Users []User `json:"users"`
 }
 
 // 编辑用户请求，若 User.ID 为 0 则新建，User 不包含 Password
 // 用户有权限修改名称、密码和头像，
 type UserEditRequest struct {
-	User     User         `json:"user"`
-	Password string       `json:"password,omitempty"`
+	User     User   `json:"user"`
+	Password string `json:"password,omitempty"`
 }
 
 // 编辑用户响应（补全诸如注册时间等信息）
 type UserEditResponse struct {
-	User     User         `json:"user"`
+	User User `json:"user"`
 }
 
 // 删除用户请求
 type UserDeleteRequest struct {
-	User    UserId        `json:"user"`
+	User UserId `json:"user"`
 }
 
 // 删除用户响应（空，根据状态码确定是否成功）
 type UserDeleteResponse struct {
-	
+}
+
+// 获取用户练习请求
+type UserPracticeRequest struct {
+	User UserId `json:"user"`
+}
+
+// 获取用户练习响应
+type UserPracticeResponse struct {
+	Judgements []Judgement `json:"judgements"`
+	Rankings []Ranking `json:"rankings"`
 }

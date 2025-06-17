@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reisen-be/internal/model"
+	"reisen-be/internal/query"
 	"reisen-be/internal/repository"
 	"strings"
 
@@ -17,11 +18,15 @@ import (
 )
 
 type ProblemService struct {
-	problemRepo *repository.ProblemRepository
+	problemListQuery *query.ProblemListQuery
+	problemRepo      *repository.ProblemRepository
 }
 
-func NewProblemService(problemRepo *repository.ProblemRepository) *ProblemService {
-	return &ProblemService{problemRepo: problemRepo}
+func NewProblemService(problemListQuery *query.ProblemListQuery, problemRepo *repository.ProblemRepository) *ProblemService {
+	return &ProblemService{
+		problemListQuery: problemListQuery,
+		problemRepo:      problemRepo,
+	}
 }
 
 func (s *ProblemService) CreateProblem(problem *model.Problem) error {
@@ -36,8 +41,12 @@ func (s *ProblemService) GetProblem(id model.ProblemId) (*model.Problem, error) 
 	return s.problemRepo.GetByID(id)
 }
 
-func (s *ProblemService) ListProblems(filter *model.ProblemFilter, page, pageSize int) ([]model.ProblemCore, int64, error) {
+func (s *ProblemService) AllProblems(filter *model.ProblemFilter, page, pageSize int) ([]model.ProblemCore, int64, error) {
 	return s.problemRepo.List(filter, page, pageSize)
+}
+
+func (s *ProblemService) ListProblems(filter *model.ProblemFilter, userID *model.UserId, page, pageSize int) ([]model.ProblemCoreWithJudgements, int64, error) {
+	return s.problemListQuery.List(filter, userID, page, pageSize)
 }
 
 func (s *ProblemService) DeleteProblem(id model.ProblemId) error {

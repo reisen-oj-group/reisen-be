@@ -18,7 +18,7 @@ const (
 	VerdictUKE VerdictId = "UKE"
 )
 
-// Testcase 测试点详情
+// 测试点详情
 type Testcase struct {
 	ID      int       `json:"id"`
 	Verdict VerdictId `json:"verdict"`
@@ -44,7 +44,7 @@ func (t TestcaseList) Value() (driver.Value, error) {
 	return json.Marshal(t)
 }
 
-// CompileInfo 编译信息
+// 编译信息
 type CompileInfo struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
@@ -62,117 +62,134 @@ func (t CompileInfo) Value() (driver.Value, error) {
 	return json.Marshal(t)
 }
 
-// Submission 提交记录
-type Submission struct {
-	ID             SubmissionId `gorm:"primaryKey;autoIncrement" json:"id"`
-	ProblemID      ProblemId    `gorm:"index" json:"problem"`
-	UserID         UserId       `gorm:"index" json:"user"`
-	ContestID      *ContestId   `gorm:"index" json:"contest,omitempty"`
-	SubmissionTime time.Time    `gorm:"not null" json:"submissionTime"`
-	EvaluationTime *time.Time   `gorm:"index" json:"evaluationTime,omitempty"`
-	Lang           CodeLangId   `gorm:"type:varchar(10);not null" json:"lang"`
-	Verdict        VerdictId    `gorm:"type:varchar(10)" json:"verdict,omitempty"`
-	Score          *int         `json:"score,omitempty"`
-	TimeUsed       *int         `json:"timeUsed,omitempty"`
-	MemoryUsed     *int         `json:"memoryUsed,omitempty"`
-	CodeLength     int          `gorm:"not null" json:"codeLength"`
-	Code           string       `gorm:"type:text;not null" json:"code"`
-	CompileInfo    *CompileInfo `gorm:"type:json" json:"compile,omitempty"`
-	Testcases      TestcaseList `gorm:"type:json" json:"testcases"`
-}
-
-// SubmissionCore 提交记录核心信息
+// 提交记录核心信息
 type SubmissionCore struct {
-	ID             SubmissionId `json:"id"`
-	ProblemID      ProblemId    `json:"problem"`
-	UserID         UserId       `json:"user"`
-	ContestID      *ContestId   `json:"contest,omitempty"`
-	SubmissionTime time.Time    `json:"submission"`
-	EvaluationTime *time.Time   `json:"evaluation,omitempty"`
-	Lang           CodeLangId   `json:"lang"`
-	Verdict        VerdictId    `json:"verdict,omitempty"`
-	Score          *int         `json:"score,omitempty"`
-	TimeUsed       *int         `json:"time,omitempty"`
-	MemoryUsed     *int         `json:"memory,omitempty"`
-	CodeLength     int          `json:"length"`
+	BaseModel
+	ID          SubmissionId `json:"id"`
+	ProblemID   ProblemId    `json:"problem"`
+	UserID      UserId       `json:"user"`
+	ContestID   *ContestId   `json:"contest,omitempty"`
+	SubmittedAt time.Time    `json:"submittedAt"`
+	ProcessedAt time.Time    `json:"processedAt"`
+	Lang        CodeLangId   `json:"lang"`
+	Verdict     VerdictId    `json:"verdict"`
+	Score       *int         `json:"score,omitempty"`
+	TimeUsed    *int         `json:"time,omitempty"`
+	MemoryUsed  *int         `json:"memory,omitempty"`
+	CodeLength  int          `json:"length"`
 }
 
-// SubmissionLite 轻量级提交信息
+// 提交记录
+type Submission struct {
+	SubmissionCore
+	Code        string       `gorm:"type:text" json:"code"`
+	CompileInfo *CompileInfo `gorm:"type:json" json:"compile,omitempty"`
+	Testcases   TestcaseList `gorm:"type:json" json:"detail"`
+}
+
+// 轻量提交记录（用于记录列表）
 type SubmissionLite struct {
 	SubmissionCore
 	Problem ProblemCore `json:"problem"`
 	User    User        `json:"user"`
 }
 
-// SubmissionFull 完整提交信息
+// 完整提交记录（用于记录详情）
 type SubmissionFull struct {
-	SubmissionCore
-	Code        string      `json:"code"`
-	CompileInfo *CompileInfo `json:"compile,omitempty"`
-	Testcases   TestcaseList `json:"detail"`
-	Problem     ProblemCore `json:"problem"`
-	User        User        `json:"user"`
+	Submission
+	Problem ProblemCore `json:"problem"`
+	User    User        `json:"user"`
 }
 
-// JudgeRequest 评测请求
+// 评测请求
 type JudgeRequest struct {
-	Problem  ProblemId    `json:"problem"`
-	Lang     CodeLangId   `json:"lang"`
-	Code     string       `json:"code"`
-	Contest  *ContestId   `json:"contest,omitempty"`
+	Problem ProblemId  `json:"problem"`
+	Lang    CodeLangId `json:"lang"`
+	Code    string     `json:"code"`
+	Contest *ContestId `json:"contest,omitempty"`
 }
 
-// JudgeResponse 评测响应
+// 评测响应
 type JudgeResponse struct {
 	Submission SubmissionId `json:"submission"`
 }
 
-// SubmissionFilterParams 记录过滤参数
-type SubmissionFilterParams struct {
+// 记录过滤参数
+type SubmissionFilter struct {
 	User    *UserId     `json:"user,omitempty"`
 	Problem *ProblemId  `json:"problem,omitempty"`
 	Lang    *CodeLangId `json:"lang,omitempty"`
 	Verdict *VerdictId  `json:"verdict,omitempty"`
 }
 
-// SubmissionFilterParamsRaw 记录传递过来的过滤参数
-type SubmissionFilterParamsRaw struct {
+// 记录传递过来的过滤参数
+type SubmissionFilterRaw struct {
 	User    *string     `json:"user,omitempty"`
 	Problem *ProblemId  `json:"problem,omitempty"`
 	Lang    *CodeLangId `json:"lang,omitempty"`
 	Verdict *VerdictId  `json:"verdict,omitempty"`
 }
 
-// SubmissionListRequest 记录列表请求
+// 记录列表请求
 type SubmissionListRequest struct {
-	SubmissionFilterParamsRaw
+	SubmissionFilterRaw
 	Page int `json:"page"`
 }
 
-// SubmissionListResponse 记录列表响应
+// 记录列表响应
 type SubmissionListResponse struct {
-	Total   int             `json:"total"`
+	Total       int64            `json:"total"`
 	Submissions []SubmissionLite `json:"submissions"`
 }
 
-// SubmissionDetailRequest 记录详情请求
+// 记录详情请求
 type SubmissionDetailRequest struct {
 	ID int64 `json:"id"`
 }
 
-// SubmissionDetailResponse 记录详情响应
+// 记录详情响应
 type SubmissionDetailResponse struct {
 	Submission SubmissionFull `json:"submission"`
 }
 
-// Result 题目结果
-type Result struct {
-	Problem ProblemId `json:"problem"`
-	Contest ContestId `json:"contest"`
-	User    UserId    `json:"user"`
+// 题目结果（用于个人练习数据展示和题目列表）
+type Judgement struct {
+	ProblemID  ProblemId  `gorm:"primaryKey" json:"problem"`
+	UserID     UserId     `gorm:"primaryKey" json:"user"`
+	Judge      string     `json:"judge"`
+	Difficulty int        `json:"difficulty"`	// 防止练习数据大量查询
+	Stamp      *time.Time `json:"stamp,omitempty"` // 通过时间
+}
 
-	Judge   interface{} `json:"judge"`
-	Attempt int         `json:"attempt"`
-	Penalty int         `json:"penalty"`
-	Time    int         `json:"time"`
+type JudgementList []Judgement
+
+func (r *JudgementList) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(bytes, r)
+}
+
+func (r JudgementList) Value() (driver.Value, error) {
+	return json.Marshal(r)
+}
+
+// 结果过滤参数
+type JudgementFilter struct {
+	User    *UserId    `json:"user,omitempty"`
+	Problem *ProblemId `json:"problem,omitempty"`
+}
+
+// 结果更新请求
+type JudgementUpdateRequest struct {
+	Contest   ContestId
+	User      UserId
+	Problem   ProblemId
+	Judgement Judgement
+}
+
+// 结果更新响应
+type JudgementUpdateResponse struct {
+	Ranking Ranking
 }

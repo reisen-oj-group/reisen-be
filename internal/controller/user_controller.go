@@ -10,11 +10,19 @@ import (
 
 type UserController struct {
 	userService *service.UserService
+	judgeService *service.JudgeService
+	contestService *service.ContestService
 }
 
-func NewUserController(userService *service.UserService) *UserController {
+func NewUserController(
+	userService *service.UserService,
+	judgeService *service.JudgeService,
+	contestService *service.ContestService,
+) *UserController {
 	return &UserController{
 		userService: userService,
+		judgeService: judgeService,
+		contestService: contestService,
 	}
 }
 
@@ -37,15 +45,7 @@ func (s *UserController) GetUser(ctx *gin.Context) {
 }
 
 // 获取用户列表
-func (c *UserController) ListUsers(ctx *gin.Context) {
-	// 从 JWT 获取当前操作角色
-	operator := ctx.MustGet("user").(*model.User)
-
-	if operator.Role < model.RoleAdmin {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "No permission"})
-		return
-	}
-
+func (c *UserController) AllUsers(ctx *gin.Context) {
 	var req model.UserListRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -109,4 +109,29 @@ func (c *UserController) DeleteUser(ctx *gin.Context) {
 		return
 	}
 	ctx.Status(http.StatusOK)
+}
+
+
+// 删除用户帐号
+func (c *UserController) GetPractice(ctx *gin.Context) {
+	var req model.UserPracticeRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	rankings, err := c.contestService.ListPractice(req.User)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	judgements, err := c.judgeService.ListPractice(req.User)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, model.UserPracticeResponse{
+		Rankings: rankings,
+		Judgements: judgements,
+	})
 }

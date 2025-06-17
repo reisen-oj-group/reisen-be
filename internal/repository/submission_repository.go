@@ -31,7 +31,7 @@ func (r *SubmissionRepository) GetByID(id int64) (*model.Submission, error) {
 	return &submission, nil
 }
 
-func (r *SubmissionRepository) List(filter *model.SubmissionFilterParams, page, pageSize int) ([]model.Submission, int64, error) {
+func (r *SubmissionRepository) List(filter *model.SubmissionFilter, page, pageSize int) ([]model.Submission, int64, error) {
 	var submissions []model.Submission
 	var total int64
 
@@ -59,7 +59,7 @@ func (r *SubmissionRepository) List(filter *model.SubmissionFilterParams, page, 
 	}
 
 	// 分页查询
-	if err := query.Order("submission_time DESC").
+	if err := query.Order("submitted_at DESC").
 		Offset((page - 1) * pageSize).
 		Limit(pageSize).
 		Find(&submissions).Error; err != nil {

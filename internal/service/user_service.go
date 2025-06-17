@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"reisen-be/internal/model"
 	"reisen-be/internal/repository"
 	"strconv"
@@ -54,6 +55,21 @@ func (s *UserService) ListUsers(filterRaw *model.UserFilterParamsRaw, page, page
 	return users, total, nil
 }
 
+func (s *UserService) ParseUsername(raw string) (*model.UserId, error) {
+	// 尝试解析为数字 ID
+	if userID, err := strconv.Atoi(raw); err == nil {
+		u := model.UserId(userID)
+		return &u, nil
+	} else {
+		// 如果是字符串，查询用户 ID
+		user, err := s.userRepo.FindByUsername(raw)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find user by name: %v", err)
+		}
+		return &user.ID, nil
+	}
+}
+
 // 处理原始筛选条件（将 user 字段解析成用户 ID 或是用户名）
 func (s *UserService) ConvertFilterParamsRaw(raw *model.UserFilterParamsRaw) (*model.UserFilterParams, error) {
 	if raw == nil {
@@ -68,7 +84,8 @@ func (s *UserService) ConvertFilterParamsRaw(raw *model.UserFilterParamsRaw) (*m
 	if raw.User != nil {
 		// 尝试解析为数字 ID
 		if userID, err := strconv.Atoi(*raw.User); err == nil {
-			params.User = (*model.UserId)(&userID)
+			u := uint(userID)
+			params.User = (*model.UserId)(&u)
 		} else {
 			// 如果是字符串，进行模糊匹配
 			params.Keyword = raw.User

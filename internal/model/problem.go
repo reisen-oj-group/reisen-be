@@ -4,7 +4,6 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
-	"time"
 )
 
 type ProblemType string
@@ -13,7 +12,7 @@ type ProblemStatus string
 const (
 	ProblemTypeTraditional ProblemType = "traditional"
 	ProblemTypeInteractive ProblemType = "interactive"
-	
+
 	ProblemStatusPublic  ProblemStatus = "public"
 	ProblemStatusPrivate ProblemStatus = "private"
 	ProblemStatusContest ProblemStatus = "contest"
@@ -46,9 +45,9 @@ func (s StatementsMap) Value() (driver.Value, error) {
 	return json.Marshal(s)
 }
 
-type TitleMap map[string]string
+type TitlesMap map[string]string
 
-func (t *TitleMap) Scan(value interface{}) error {
+func (t *TitlesMap) Scan(value interface{}) error {
 	bytes, ok := value.([]byte)
 	if !ok {
 		return errors.New("type assertion to []byte failed")
@@ -56,58 +55,49 @@ func (t *TitleMap) Scan(value interface{}) error {
 	return json.Unmarshal(bytes, t)
 }
 
-func (t TitleMap) Value() (driver.Value, error) {
+func (t TitlesMap) Value() (driver.Value, error) {
 	return json.Marshal(t)
 }
 
-
-type Problem struct {
-	ID           ProblemId              `gorm:"primaryKey;autoIncrement" json:"id"`
-	Type         ProblemType            `gorm:"type:varchar(20)" json:"type"`
-	Status       ProblemStatus          `gorm:"type:varchar(10)" json:"status"`
-	LimitTime    int                    `gorm:"not null" json:"limitTime"`
-	LimitMemory  int                    `gorm:"not null" json:"limitMemory"`
-	Statements   StatementsMap          `gorm:"type:json" json:"statements"`
-	Title        TitleMap               `gorm:"type:json" json:"title"`
-	CountCorrect int                    `gorm:"default:0" json:"countCorrect"`
-	CountTotal   int                    `gorm:"default:0" json:"countTotal"`
-	Difficulty   int                    `gorm:"not null" json:"difficulty"`
-	Tags         []ProblemTag           `gorm:"foreignKey:ProblemID" json:"tags,omitempty"`
-	Provider     UserId                 `gorm:"not null" json:"provider"`
-	
-	// 新增测试数据相关字段
-	HasTestdata bool      `gorm:"default:false" json:"hasTestdata"`
-	HasConfig   bool      `gorm:"default:false" json:"hasConfig"`
-
-	// 创建时间和更新时间
-	CreatedAt    time.Time              `gorm:"autoCreateTime" json:"createdAt"`
-	UpdatedAt    time.Time              `gorm:"autoUpdateTime" json:"updatedAt"`
-}
-
 type ProblemCore struct {
-	ID           ProblemId     `json:"id"`
+	BaseModel
+	ID           ProblemId     `json:"id" gorm:"type:json"`
 	Type         ProblemType   `json:"type"`
 	Status       ProblemStatus `json:"status"`
-	LimitTime    int           `json:"limitTime"`
-	LimitMemory  int           `json:"limitMemory"`
-	CountCorrect int           `json:"countCorrect"`
-	CountTotal   int           `json:"countTotal"`
-	Difficulty   int           `json:"difficulty"`
-	Title        map[string]string `json:"title"`
-	Tags         []TagId       `json:"tags"`
+	LimitTime    int           `json:"limitTime"`    // 以 ms 为单位
+	LimitMemory  int           `json:"limitMemory"`  // 以 kB 为单位
+	CountCorrect int64         `json:"countCorrect"` // 通过提交记录个数
+	CountTotal   int64         `json:"countTotal"`   // 全部提交记录个数
+	Difficulty   int           `json:"difficulty"`   // Codeforces 难度评级，范围 800~3500
+	Title        TitlesMap     `json:"title" gorm:"type:json"`
+	Tags         []TagId       `json:"tags"  gorm:"type:json"`
+	Provider     UserId        `json:"provider"`
 }
 
-// ProblemTag 题目标签关联表
-type ProblemTag struct {
-	ProblemID ProblemId `gorm:"primaryKey" json:"problemId"`
-	TagID     TagId     `gorm:"primaryKey" json:"tagId"`
+func (ProblemCore) TableName() string {
+	return "problems"
 }
 
-func (ProblemTag) TableName() string {
-	return "problem_tag"
+// 用于题目列表查询
+type ProblemCoreWithJudgements struct {
+	ProblemCore
+	Judgements []Judgement `gorm:"foreignKey:ProblemID" json:"judgements"` // 反向关联
 }
 
-// 实现自定义JSON序列化/反序列化
+func (ProblemCoreWithJudgements) TableName() string {
+	return "problems"
+}
+
+type Problem struct {
+	ProblemCore
+	Statements StatementsMap `json:"statements" gorm:"type:json"`
+
+	// 测试数据相关字段
+	HasTestdata bool `json:"hasTestdata" gorm:"default:false"`
+	HasConfig   bool `json:"hasConfig"   gorm:"default:false"`
+}
+
+// 实现自定义 JSON 序列化/反序列化
 func (p *Problem) Scan(value interface{}) error {
 	if value == nil {
 		return nil
@@ -120,48 +110,65 @@ func (p Problem) Value() ([]byte, error) {
 }
 
 type ProblemFilter struct {
-	MinDifficulty *int
-	MaxDifficulty *int
-	Tags          []int
-	Keywords      *string
-	Provider      *UserId
-	Status        *ProblemStatus
+	MinDifficulty *int           `json:"minDifficulty"`
+	MaxDifficulty *int           `json:"maxDifficulty"`
+	Tags          []int          `json:"tags"`
+	Keywords      *string        `json:"keywords"`
+	Provider      *UserId        `json:"provider"`
+	Status        *ProblemStatus `json:"status"`
 }
 
+// 题目编辑请求
 type ProblemEditRequest struct {
 	Problem Problem `json:"problem"`
 }
 
+// 题目编辑响应
 type ProblemEditResponse struct {
 	Problem Problem `json:"problem"`
 }
 
+// 题目删除请求
 type ProblemDeleteRequest struct {
 	Problem ProblemId `json:"problem"`
 }
 
+// 题目删除响应
 type ProblemDeleteResponse struct {
-	
 }
 
+// 题目信息请求（携带用户信息用于查询用户本题提交信息）
 type ProblemRequest struct {
-	Problem  ProblemId `json:"problem"`
-	User    *UserId    `json:"user,omitempty"`
+	Problem ProblemId `json:"problem"`
+	User    *UserId   `json:"user,omitempty"`
 }
 
+// 题目信息响应
 type ProblemResponse struct {
-	Problem Problem `json:"problem"`
-	Result  *Result `json:"result,omitempty"`
+	Problem   Problem    `json:"problem"`
+	Judgement *Judgement `json:"judgement,omitempty"`
 }
 
+// 主题目列表查询
 type ProblemListRequest struct {
 	ProblemFilter
-	Page          *int    `json:"page,omitempty"`
-	User          *UserId `json:"user,omitempty"`
+	Page *int `json:"page,omitempty"`
 }
 
+// 主题目列表响应
 type ProblemListResponse struct {
-	Total    int           `json:"total"`
+	Total    int64                       `json:"total"`
+	Problems []ProblemCoreWithJudgements `json:"problems"`
+}
+
+// 题目列表查询
+type ProblemAllRequest struct {
+	ProblemFilter
+	Page *int `json:"page,omitempty"`
+}
+
+// 题目列表响应
+type ProblemAllResponse struct {
+	Total    int64         `json:"total"`
 	Problems []ProblemCore `json:"problems"`
-	Results  []Result      `json:"results,omitempty"`
 }

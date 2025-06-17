@@ -50,7 +50,6 @@ func (s *AuthService) Register(username, password string) (*model.User, error) {
 	user := &model.User{
 		Name:     username,
 		Role:     model.RoleUser,
-		Register: time.Now(),
 		Password: string(hashedPassword),
 	}
 
@@ -70,7 +69,6 @@ func (s *AuthService) Create(profile model.User, password string) (*model.User, 
 	user := &model.User{
 		Name:     profile.Name,
 		Role:     profile.Role,
-		Register: time.Now(),
 		Password: string(hashedPassword),
 	}
 

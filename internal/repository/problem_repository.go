@@ -15,49 +15,26 @@ func NewProblemRepository(db *gorm.DB) *ProblemRepository {
 }
 
 func (r *ProblemRepository) Create(problem *model.Problem) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(problem).Error; err != nil {
-			return err
-		}
-		
-		// 处理标签关联
-		if len(problem.Tags) > 0 {
-			if err := tx.Model(problem).Association("Tags").Replace(problem.Tags); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+	return r.db.Create(problem).Error;
 }
 
 func (r *ProblemRepository) Update(problem *model.Problem) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		// 更新基础字段
-		if err := tx.Model(problem).Updates(problem).Error; err != nil {
-			return err
-		}
-		
-		// 更新标签关联
-		if err := tx.Model(problem).Association("Tags").Replace(problem.Tags); err != nil {
-			return err
-		}
-		return nil
-	})
+	return r.db.Save(problem).Error;
 }
 
 func (r *ProblemRepository) GetByID(id model.ProblemId) (*model.Problem, error) {
 	var problem model.Problem
-	if err := r.db.Preload("Tags").First(&problem, id).Error; err != nil {
+	if err := r.db.First(&problem, id).Error; err != nil {
 		return nil, err
 	}
 	return &problem, nil
 }
 
 func (r *ProblemRepository) List(filter *model.ProblemFilter, page, pageSize int) ([]model.ProblemCore, int64, error) {
-	var problems []model.Problem
+	var problems []model.ProblemCore
 	var total int64
 
-	query := r.db.Model(&model.Problem{})
+	query := r.db.Model(&model.ProblemCore{})
 
 	// 应用过滤条件
 	if filter != nil {
@@ -94,40 +71,11 @@ func (r *ProblemRepository) List(filter *model.ProblemFilter, page, pageSize int
 		return nil, 0, err
 	}
 
-	// 转换为ProblemCore格式
-	cores := make([]model.ProblemCore, 0)
-	for _, p := range problems {
-		var tagIDs []model.TagId
-		for _, tag := range p.Tags {
-			tagIDs = append(tagIDs, tag.TagID)
-		}
-		
-		cores = append(cores, model.ProblemCore{
-			ID:           p.ID,
-			Type:         p.Type,
-			Status:       p.Status,
-			LimitTime:    p.LimitTime,
-			LimitMemory:  p.LimitMemory,
-			CountCorrect: p.CountCorrect,
-			CountTotal:   p.CountTotal,
-			Difficulty:   p.Difficulty,
-			Title:        p.Title,
-			Tags:         tagIDs,
-		})
-	}
-
-	return cores, total, nil
+	return problems, total, nil
 }
 
 func (r *ProblemRepository) Delete(problemID model.ProblemId) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		// 先删除标签关联
-		if err := tx.Where("problem_id = ?", problemID).Delete(&model.ProblemTag{}).Error; err != nil {
-			return err
-		}
-		// 再删除题目
-		return tx.Delete(&model.Problem{}, problemID).Error
-	})
+	return r.db.Delete(&model.Problem{}, problemID).Error
 }
 
 func (r *ProblemRepository) IncreaseSubmitTotal(problemID model.ProblemId) error {

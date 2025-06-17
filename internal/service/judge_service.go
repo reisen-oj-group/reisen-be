@@ -9,12 +9,12 @@ import (
 	"path/filepath"
 	"reisen-be/internal/model"
 	"reisen-be/internal/repository"
-	"strconv"
 	"time"
 )
 
 type JudgeService struct {
 	submissionRepo *repository.SubmissionRepository
+	judgementRepo  *repository.JudgementRepository
 	problemRepo    *repository.ProblemRepository
 	userRepo       *repository.UserRepository
 	dataDir       string
@@ -22,12 +22,14 @@ type JudgeService struct {
 
 func NewJudgeService(
 	submissionRepo *repository.SubmissionRepository,
+	judgementRepo  *repository.JudgementRepository,
 	problemRepo *repository.ProblemRepository,
 	userRepo *repository.UserRepository,
 	dataDir string,
 ) *JudgeService {
 	return &JudgeService{
 		submissionRepo: submissionRepo,
+		judgementRepo: judgementRepo,
 		problemRepo:    problemRepo,
 		userRepo:       userRepo,
 		dataDir:        dataDir,
@@ -232,20 +234,23 @@ func deleteFile(fileId string) error {
 	return nil
 }
 
-// SubmitCode 处理代码提交和评测
+// 处理代码提交和评测
 func (s *JudgeService) SubmitCode(req *model.JudgeRequest, userID model.UserId) (*model.SubmissionFull, error) {
 	// 1. 创建初始提交记录
 	now := time.Now()
-	submission := &model.Submission{
-		ProblemID:      req.Problem,
-		UserID:         userID,
-		ContestID:      req.Contest,
-		SubmissionTime: now,
-		Lang:           req.Lang,
+	submission := model.Submission{
+		SubmissionCore: model.SubmissionCore{
+			ProblemID:      req.Problem,
+			UserID:         userID,
+			ContestID:      req.Contest,
+			SubmittedAt:    now,
+			ProcessedAt:    now,
+			Lang:           req.Lang,
+			CodeLength:     len(req.Code),
+			Verdict:        model.VerdictPD, // Pending
+		},
 		Code:           req.Code,
-		CodeLength:     len(req.Code),
 		Testcases:      make([]model.Testcase, 0),
-		Verdict:        model.VerdictPD, // Pending
 	}
 
 	// 2. 获取题目信息
@@ -267,7 +272,7 @@ func (s *JudgeService) SubmitCode(req *model.JudgeRequest, userID model.UserId) 
 	if err != nil {
 		// 编译失败
 		evalTime := time.Now()
-		submission.EvaluationTime = &evalTime
+		submission.ProcessedAt = evalTime
 		submission.Verdict = model.VerdictCE // Compile Error
 		submission.Score = new(int)
 		*submission.Score = 0
@@ -329,7 +334,7 @@ func (s *JudgeService) SubmitCode(req *model.JudgeRequest, userID model.UserId) 
 
 		// 6. 确定最终评测结果
 		evalTime := time.Now()
-		submission.EvaluationTime = &evalTime
+		submission.ProcessedAt = evalTime
 		submission.TimeUsed = &maxTimeUsed
 		submission.MemoryUsed = &maxMemoryUsed
 		submission.Score = &totalScore
@@ -351,7 +356,7 @@ func (s *JudgeService) SubmitCode(req *model.JudgeRequest, userID model.UserId) 
 	}
 
 	// 7. 保存提交记录
-	if err := s.submissionRepo.Create(submission); err != nil {
+	if err := s.submissionRepo.Create(&submission); err != nil {
 		return nil, err
 	}
 
@@ -373,45 +378,13 @@ func (s *JudgeService) SubmitCode(req *model.JudgeRequest, userID model.UserId) 
 
 	// 10. 构建响应
 	return &model.SubmissionFull{
-		SubmissionCore: model.SubmissionCore{
-			ID:             submission.ID,
-			ProblemID:      submission.ProblemID,
-			UserID:         submission.UserID,
-			ContestID:      submission.ContestID,
-			SubmissionTime: submission.SubmissionTime,
-			EvaluationTime: submission.EvaluationTime,
-			Lang:           submission.Lang,
-			Verdict:        submission.Verdict,
-			Score:          submission.Score,
-			TimeUsed:       submission.TimeUsed,
-			MemoryUsed:     submission.MemoryUsed,
-			CodeLength:     submission.CodeLength,
-		},
-		Code:        submission.Code,
-		CompileInfo: submission.CompileInfo,
-		Testcases:   submission.Testcases,
-		Problem: model.ProblemCore{
-			ID:           problem.ID,
-			Type:         problem.Type,
-			Status:       problem.Status,
-			LimitTime:    problem.LimitTime,
-			LimitMemory:  problem.LimitMemory,
-			CountCorrect: problem.CountCorrect,
-			CountTotal:   problem.CountTotal,
-			Difficulty:   problem.Difficulty,
-			Title:        problem.Title,
-		},
-		User: model.User{
-			ID:       user.ID,
-			Name:     user.Name,
-			Role:     user.Role,
-			Register: user.Register,
-			Avatar:   user.Avatar,
-		},
+		Submission: submission,
+		Problem: problem.ProblemCore,
+		User: *user,
 	}, nil
 }
 
-// GetSubmissionDetail 获取提交详情
+// 获取提交详情
 func (s *JudgeService) GetSubmissionDetail(id int64) (*model.SubmissionFull, error) {
 	submission, err := s.submissionRepo.GetByID(id)
 	if err != nil {
@@ -429,81 +402,14 @@ func (s *JudgeService) GetSubmissionDetail(id int64) (*model.SubmissionFull, err
 	}
 
 	return &model.SubmissionFull{
-		SubmissionCore: model.SubmissionCore{
-			ID:             submission.ID,
-			ProblemID:      submission.ProblemID,
-			UserID:         submission.UserID,
-			ContestID:      submission.ContestID,
-			SubmissionTime: submission.SubmissionTime,
-			EvaluationTime: submission.EvaluationTime,
-			Lang:           submission.Lang,
-			Verdict:        submission.Verdict,
-			Score:          submission.Score,
-			TimeUsed:       submission.TimeUsed,
-			MemoryUsed:     submission.MemoryUsed,
-			CodeLength:     submission.CodeLength,
-		},
-		Code:        submission.Code,
-		CompileInfo: submission.CompileInfo,
-		Testcases:   submission.Testcases,
-		Problem: model.ProblemCore{
-			ID:           problem.ID,
-			Type:         problem.Type,
-			Status:       problem.Status,
-			LimitTime:    problem.LimitTime,
-			LimitMemory:  problem.LimitMemory,
-			CountCorrect: problem.CountCorrect,
-			CountTotal:   problem.CountTotal,
-			Difficulty:   problem.Difficulty,
-			Title:        problem.Title,
-		},
-		User: model.User{
-			ID:       user.ID,
-			Name:     user.Name,
-			Role:     user.Role,
-			Register: user.Register,
-			Avatar:   user.Avatar,
-		},
+		Submission: *submission,
+		Problem:    problem.ProblemCore,
+		User:       *user,
 	}, nil
 }
 
-// ConvertFilterParamsRaw 将原始参数转换为处理后的参数
-func (s *JudgeService) ConvertFilterParamsRaw(raw *model.SubmissionFilterParamsRaw) (*model.SubmissionFilterParams, error) {
-	if raw == nil {
-		return nil, nil
-	}
-
-	params := &model.SubmissionFilterParams{
-			Problem: raw.Problem,
-			Lang:    raw.Lang,
-			Verdict: raw.Verdict,
-	}
-
-	// 处理 User 字段转换
-	if raw.User != nil {
-		// 尝试解析为数字 ID
-		if userID, err := strconv.Atoi(*raw.User); err == nil {
-			params.User = (*model.UserId)(&userID)
-		} else {
-			// 如果是字符串，查询用户 ID
-			user, err := s.userRepo.FindByUsername(*raw.User)
-			if err != nil {
-					return nil, fmt.Errorf("failed to find user by name: %v", err)
-			}
-			params.User = &user.ID
-		}
-	}
-
-	return params, nil
-}
-
-// ListSubmissions 获取提交列表
-func (s *JudgeService) ListSubmissions(filterRaw *model.SubmissionFilterParamsRaw, page, pageSize int) ([]model.SubmissionLite, int64, error) {
-	filter, err := s.ConvertFilterParamsRaw(filterRaw)
-	if err != nil {
-		return nil, 0, err
-	}
-
+// 获取提交列表
+func (s *JudgeService) ListSubmissions(filter *model.SubmissionFilter, page, pageSize int) ([]model.SubmissionLite, int64, error) {
 	submissions, total, err := s.submissionRepo.List(filter, page, pageSize)
 	if err != nil {
 		return nil, 0, err
@@ -522,40 +428,20 @@ func (s *JudgeService) ListSubmissions(filterRaw *model.SubmissionFilterParamsRa
 		}
 
 		lites = append(lites, model.SubmissionLite{
-			SubmissionCore: model.SubmissionCore{
-				ID:             sub.ID,
-				ProblemID:      sub.ProblemID,
-				UserID:         sub.UserID,
-				ContestID:      sub.ContestID,
-				SubmissionTime: sub.SubmissionTime,
-				EvaluationTime: sub.EvaluationTime,
-				Lang:           sub.Lang,
-				Verdict:        sub.Verdict,
-				Score:          sub.Score,
-				TimeUsed:       sub.TimeUsed,
-				MemoryUsed:     sub.MemoryUsed,
-				CodeLength:     sub.CodeLength,
-			},
-			Problem: model.ProblemCore{
-				ID:           problem.ID,
-				Type:         problem.Type,
-				Status:       problem.Status,
-				LimitTime:    problem.LimitTime,
-				LimitMemory:  problem.LimitMemory,
-				CountCorrect: problem.CountCorrect,
-				CountTotal:   problem.CountTotal,
-				Difficulty:   problem.Difficulty,
-				Title:        problem.Title,
-			},
-			User: model.User{
-				ID:       user.ID,
-				Name:     user.Name,
-				Role:     user.Role,
-				Register: user.Register,
-				Avatar:   user.Avatar,
-			},
+			SubmissionCore: sub.SubmissionCore,
+			Problem: problem.ProblemCore,
+			User: *user,
 		})
 	}
 
 	return lites, total, nil
+}
+
+// 获取用户练习列表
+func (s *JudgeService) ListPractice(user model.UserId) ([]model.Judgement, error) {
+	judgements, err := s.judgementRepo.GetByUser(user)
+	if err != nil {
+		return nil, err
+	}
+	return judgements, nil
 }
