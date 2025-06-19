@@ -28,7 +28,7 @@ func (r *JudgementRepository) Delete(problemID model.ProblemId, userID model.Use
 
 func (r *JudgementRepository) GetByID(problemID model.ProblemId, userID model.UserId) (*model.Judgement, error) {
 	var judgement model.Judgement
-	if err := r.db.First(&judgement, problemID, userID).Error; err != nil {
+	if err := r.db.First(&judgement, model.Judgement{ ProblemID: problemID, UserID: userID }).Error; err != nil {
 		return nil, err
 	}
 	return &judgement, nil

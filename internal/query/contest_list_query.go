@@ -32,6 +32,9 @@ func (q *ContestListQuery) List(filter *model.ContestFilter, userID *model.UserI
 		if filter.Rule != nil {
 			query = query.Where("rule = ?", *filter.Rule)
 		}
+		if filter.Difficulty != nil {
+			query = query.Where("difficulty = ?", *filter.Difficulty)
+		}
 		if filter.Keyword != nil {
 			query = query.Where("title LIKE ?", "%"+*filter.Keyword+"%")
 		}

@@ -19,7 +19,7 @@ func (r *SignupRepository) Signup(userID model.UserId, contestID model.ContestId
 	signup := model.Signup{
 		ContestID: contestID,
 		UserID:    userID,
-		Register:  time.Now(),
+		Stamp:     time.Now(),
 	}
 	return r.db.Create(&signup).Error
 }
@@ -51,7 +51,7 @@ func (r *SignupRepository) GetSignupsAll(contestID model.ContestId) ([]model.Sig
 
 	// 分页查询
 	if err := r.db.Where("contest_id = ?", contestID).
-		Order("register ASC").
+		Order("stamp ASC").
 		Find(&signups).Error; err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (r *SignupRepository) GetSignups(contestID model.ContestId, page, pageSize 
 
 	// 分页查询
 	if err := r.db.Where("contest_id = ?", contestID).
-		Order("register ASC").
+		Order("stamp ASC").
 		Offset((page - 1) * pageSize).
 		Limit(pageSize).
 		Find(&signups).Error; err != nil {

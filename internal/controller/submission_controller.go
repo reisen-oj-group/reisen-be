@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"reisen-be/internal/model"
 	"reisen-be/internal/service"
+	"reisen-be/internal/websocket"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,38 +13,19 @@ import (
 type SubmissionController struct {
 	judgeService *service.JudgeService
 	userService *service.UserService
+	submissionWs *websocket.SubmissionWs
 }
 
 func NewSubmissionController(
 	judgeService *service.JudgeService,
 	userService *service.UserService,
+	submissionWs *websocket.SubmissionWs,
 ) *SubmissionController {
 	return &SubmissionController{
 		judgeService: judgeService,
 		userService: userService,
+		submissionWs: submissionWs,
 	}
-}
-
-// 提交代码评测
-func (c *SubmissionController) SubmitCode(ctx *gin.Context) {
-	var req model.JudgeRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// 从上下文中获取用户
-	user := ctx.MustGet("user").(*model.User)
-
-	submission, err := c.judgeService.SubmitCode(&req, user.ID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, model.JudgeResponse{
-		Submission: submission.ID,
-	})
 }
 
 // 获取评测记录详情
@@ -64,7 +47,16 @@ func (c *SubmissionController) GetSubmissionDetail(ctx *gin.Context) {
 	})
 }
 
-
+// 处理评测记录跟踪
+func (c *SubmissionController) HandleSubmissionWS(ctx *gin.Context) {
+	id := ctx.Param("id")
+	submissionId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.submissionWs.HandleConnection(ctx.Writer, ctx.Request, (model.SubmissionId)(submissionId))
+}
 
 // 将原始参数转换为处理后的参数
 func (c *SubmissionController) ConvertSubmissionFilter(raw *model.SubmissionFilterRaw) (*model.SubmissionFilter, error) {

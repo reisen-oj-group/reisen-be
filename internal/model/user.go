@@ -46,6 +46,16 @@ type UserResponse struct {
 	User User `json:"user"`
 }
 
+// 上传头像请求
+type AvatarRequest struct {
+	
+}
+
+// 上传头像响应
+type AvatarResponse struct {
+	Path string `json:"path"`
+}
+
 // 用户列表请求
 type UserListRequest struct {
 	UserFilterParamsRaw

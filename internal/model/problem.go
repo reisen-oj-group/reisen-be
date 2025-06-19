@@ -61,7 +61,7 @@ func (t TitlesMap) Value() (driver.Value, error) {
 
 type ProblemCore struct {
 	BaseModel
-	ID           ProblemId     `json:"id" gorm:"type:json"`
+	ID           ProblemId     `json:"id"`
 	Type         ProblemType   `json:"type"`
 	Status       ProblemStatus `json:"status"`
 	LimitTime    int           `json:"limitTime"`    // 以 ms 为单位
@@ -165,6 +165,7 @@ type ProblemListResponse struct {
 type ProblemAllRequest struct {
 	ProblemFilter
 	Page *int `json:"page,omitempty"`
+	Size *int `json:"size,omitempty"`
 }
 
 // 题目列表响应

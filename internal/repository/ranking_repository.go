@@ -27,7 +27,7 @@ func (r *RankingRepository) Delete(contestID model.ContestId, userID model.UserI
 
 func (r *RankingRepository) GetByID(contestID model.ContestId, userID model.UserId) (*model.Ranking, error) {
 	var ranking model.Ranking
-	if err := r.db.First(&ranking, contestID, userID).Error; err != nil {
+	if err := r.db.Take(&ranking, model.Ranking{ ContestID: contestID, UserID: userID }).Error; err != nil {
 		return nil, err
 	}
 	return &ranking, nil

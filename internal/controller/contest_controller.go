@@ -1,25 +1,34 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 	"reisen-be/internal/model"
 	"reisen-be/internal/service"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type ContestController struct {
 	contestService *service.ContestService
+	problemService *service.ProblemService
 	userService    *service.UserService
+	judgeService   *service.JudgeService
 }
 
 func NewContestController(
 	contestService *service.ContestService,
-	userService *service.UserService,
+	problemService *service.ProblemService,
+	userService    *service.UserService,
+	judgeService   *service.JudgeService,
 ) *ContestController {
 	return &ContestController{
 		contestService: contestService,
+		problemService: problemService,
 		userService:    userService,
+		judgeService:   judgeService,
 	}
 }
 
@@ -57,13 +66,19 @@ func (c *ContestController) GetContest(ctx *gin.Context) {
 	}
 	contest, err := c.contestService.GetContest(req.Contest)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "比赛不存在"})
 		return
 	}
 
 	user := ctx.MustGet("user").(*model.User)
+	
+	if contest.StartTime.After(time.Now()) && (user == nil || user.Role <= model.RoleUser) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "比赛未开始"})
+		return
+	}
 
 	if user == nil {
+		// 游客，只有比赛信息
 		ctx.JSON(http.StatusOK, model.ContestResponse{
 			Contest: *contest,
 		})
@@ -78,6 +93,64 @@ func (c *ContestController) GetContest(ctx *gin.Context) {
 	}
 }
 
+// 删除比赛
+func (c *ContestController) DeleteContest(ctx *gin.Context) {
+	var req model.ContestDeleteRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := c.contestService.DeleteContest(req.Contest); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"message": "contest deleted successfully"})
+}
+
+// 提交主题库代码评测
+func (c *ContestController) SubmitCode(ctx *gin.Context) {
+	var req model.JudgeRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 从上下文中获取用户
+	user := ctx.MustGet("user").(*model.User)
+
+	// 获取比赛信息
+	contest, err := c.contestService.GetContest(*req.Contest)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if contest.StartTime.After(time.Now()) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "比赛未开始"})
+		return
+	}
+	if contest.EndTime.Before(time.Now()) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "比赛已结束"})
+		return
+	}
+
+	// 获取报名信息
+	_, err = c.contestService.GetSignup(*req.Contest, user.ID)
+	if err != nil {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "报名后才可提交比赛"})
+		return
+	}
+
+	submission, err := c.judgeService.SubmitCode(&req, user.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, model.JudgeResponse{
+		Submission: submission.ID,
+	})
+}
+
 // 获取比赛排名
 func (c *ContestController) GetRanking(ctx *gin.Context) {
 	var req model.ContestRankingRequest
@@ -89,11 +162,17 @@ func (c *ContestController) GetRanking(ctx *gin.Context) {
 
 	ranking, err := c.contestService.GetRanking(req.Contest, user.ID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if errors.Is(err, gorm.ErrRecordNotFound){
+			ctx.JSON(http.StatusOK, model.ContestRankingResponse{
+				Ranking: nil,
+			})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	ctx.JSON(http.StatusOK, model.ContestRankingResponse{
-		Ranking: *ranking,
+		Ranking: ranking,
 	})
 }
 
@@ -136,8 +215,14 @@ func (c *ContestController) ListContests(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	pageSize := 50
-	contests, total, err := c.contestService.ListContests(filter, userID, req.Page, pageSize)
+	
+	page := 1
+	if req.Page != nil && *req.Page > 0 {
+		page = *req.Page
+	}
+	size := 10
+
+	contests, total, err := c.contestService.ListContests(filter, userID, page, size)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -161,8 +246,16 @@ func (c *ContestController) AllContests(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	pageSize := 50
-	contests, total, err := c.contestService.AllContests(filter, req.Page, pageSize)
+	page := 1
+	if req.Page != nil && *req.Page > 0 {
+		page = *req.Page
+	}
+	size := 50
+	if req.Size != nil && *req.Size > 0 {
+		size = *req.Size
+	}
+
+	contests, total, err := c.contestService.AllContests(filter, page, size)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

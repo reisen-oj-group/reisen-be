@@ -43,26 +43,48 @@ func (c ContestProblems) Value() (driver.Value, error) {
 	return json.Marshal(c)
 }
 
+type ContestProblemStatus struct {
+	FirstBloodUserID *UserId    `json:"firstBloodUserId,omitempty"`
+	FirstBloodTime   *time.Time `json:"firstBloodTime,omitempty"`
+	SolvedCount      int        `json:"solvedCount"`
+	TotalCount       int        `json:"totalCount"`
+}
+
+type ContestProblemStatuses map[ProblemId]ContestProblemStatus
+func (c *ContestProblemStatuses) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(bytes, c)
+}
+
+func (c ContestProblemStatuses) Value() (driver.Value, error) {
+	return json.Marshal(c)
+}
+
 // 比赛基本信息
 type Contest struct {
 	BaseModel
-	Title       string            `gorm:"size:100"         json:"title"`
-	Banner      string            `gorm:"size:200"         json:"banner,omitempty"`
-	Summary     string            `gorm:"type:text"        json:"summary"`
-	Description string            `gorm:"type:text"        json:"description"`
-	Difficulty  ContestDifficulty `gorm:"not null"         json:"difficulty"`
-	Status      ContestStatus     `gorm:"type:varchar(10)" json:"status"`
-	StartTime   time.Time         `gorm:"not null"         json:"startTime"`
-	EndTime     time.Time         `gorm:"not null"         json:"endTime"`
-	Rule        ContestRule       `gorm:"type:varchar(10)" json:"rule"`
-	Problems    ContestProblems   `gorm:"type:json"        json:"problems"`
+	ID            ContestId         `json:"id"`
+	Title         string            `gorm:"size:100"         json:"title"`
+	Banner        string            `gorm:"size:200"         json:"banner,omitempty"`
+	Summary       string            `gorm:"type:text"        json:"summary"`
+	Description   string            `gorm:"type:text"        json:"description"`
+	Difficulty    ContestDifficulty `gorm:"not null"         json:"difficulty"`
+	Status        ContestStatus     `gorm:"type:varchar(10)" json:"status"`
+	StartTime     time.Time         `gorm:"not null"         json:"startTime"`
+	EndTime       time.Time         `gorm:"not null"         json:"endTime"`
+	Rule          ContestRule       `gorm:"type:varchar(10)" json:"rule"`
+	Problems      ContestProblems   `gorm:"type:json"        json:"problems"`
+	ProblemStatus ContestProblemStatuses `gorm:"type:json" json:"problemStatus,omitempty"`
 }
 
 // 比赛报名信息
 type Signup struct {
 	ContestID ContestId `gorm:"primaryKey"     json:"contest"`
 	UserID    UserId    `gorm:"primaryKey"     json:"user"`
-	Register  time.Time `gorm:"autoCreateTime" json:"register"`
+	Stamp     time.Time `gorm:"autoCreateTime" json:"register"`
 }
 
 func (Signup) TableName() string {
@@ -81,14 +103,56 @@ func (ContestWithSignups) TableName() string {
 
 // 比赛排名信息
 type Ranking struct {
-	ContestID  ContestId      `gorm:"primaryKey"  json:"contest"`
-	UserID     UserId         `gorm:"primaryKey"  json:"user"`
-	Ranking    int            `                   json:"ranking"`
-	Detail     datatypes.JSON `gorm:"type:json"   json:"detail"`
+	ContestID ContestId      `gorm:"primaryKey"  json:"contest"`
+	UserID    UserId         `gorm:"primaryKey"  json:"user"`
+	Team      string         `gorm:"size:50"     json:"team"`
+	Ranking   int            `                   json:"ranking"`
+	Detail    datatypes.JSON `gorm:"type:json"   json:"detail"`
 }
 
 func (Ranking) TableName() string {
 	return "rankings"
+}
+
+// ACM problem cell data
+type ACMCell struct {
+	IsFirst   bool `json:"isFirst"`   // 是否为一血
+	IsSolved  bool `json:"isSolved"`  // 是否已通过
+	AttemptBF int  `json:"attemptBF"` // 封榜前尝试次数
+	AttemptAF int  `json:"attemptAF"` // 封榜后尝试次数
+	Penalty   int  `json:"penalty"`   // 罚时
+}
+
+// ACM ranking detail
+type ACMDetail struct {
+	Type         string                `json:"type"`         // "ACM"
+	TotalPenalty int                   `json:"totalPenalty"` // 总罚时
+	TotalSolved  int                   `json:"totalSolved"`  // 总通过数
+	Problems     map[ProblemId]ACMCell `json:"problems"`
+}
+
+// OI problem cell data
+type OIProblem struct {
+	Score int `json:"score"`
+}
+
+// OI ranking detail
+type OIDetail struct {
+	Type       string                  `json:"type"`       // "OI"
+	TotalScore int                     `json:"totalScore"` // 总分
+	Problems   map[ProblemId]OIProblem `json:"problems"`
+}
+
+// IOI problem cell data (same as OI for now)
+type IOIProblem struct {
+	Score int `json:"score"`
+}
+
+// IOI ranking detail
+type IOIDetail struct {
+	Type       string                   `json:"type"`       // "IOI"
+	TotalScore int                      `json:"totalScore"` // 总分
+	Problems   map[ProblemId]IOIProblem `json:"problems"`
 }
 
 // 比赛过滤条件
@@ -138,7 +202,7 @@ type ContestProblemsResponse struct {
 // 比赛列表请求
 type ContestListRequest struct {
 	ContestFilterRaw
-	Page int `json:"page"`
+	Page *int `json:"page,omitempty"`
 }
 
 // 比赛列表响应
@@ -150,7 +214,8 @@ type ContestListResponse struct {
 // 比赛列表请求
 type ContestAllRequest struct {
 	ContestFilterRaw
-	Page int `json:"page"`
+	Page *int `json:"page,omitempty"`
+	Size *int `json:"size,omitempty"`
 }
 
 // 比赛列表响应
@@ -203,7 +268,7 @@ type ContestRankingRequest struct {
 
 // 比赛排名响应
 type ContestRankingResponse struct {
-	Ranking Ranking `json:"ranking"`
+	Ranking *Ranking `json:"ranking,omitempty"`
 }
 
 // 比赛排行榜请求

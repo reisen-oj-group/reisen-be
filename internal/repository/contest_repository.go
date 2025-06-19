@@ -2,6 +2,7 @@ package repository
 
 import (
 	"reisen-be/internal/model"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -122,6 +123,9 @@ func (r *ContestRepository) List(filter *model.ContestFilter, page, pageSize int
 		if filter.Status != nil {
 			query = query.Where("status = ?", *filter.Status)
 		}
+		if filter.Difficulty != nil {
+			query = query.Where("difficulty = ?", *filter.Difficulty)
+		}
 		if filter.Rule != nil {
 			query = query.Where("rule = ?", *filter.Rule)
 		}
@@ -149,4 +153,40 @@ func (r *ContestRepository) List(filter *model.ContestFilter, page, pageSize int
 		return nil, 0, err
 	}
 	return contests, total, nil
+}
+
+func (r *ContestRepository) ListRunning() ([]model.Contest, error) {
+	var contests []model.Contest
+
+	now := time.Now()
+	query := r.db.Model(&model.Contest{}).
+		Where("start_time <= ?", now).
+		Where("end_time >= ?", now)
+
+	// 分页查询
+	if err := query.Find(&contests).Error; err != nil {
+		return nil, err
+	}
+
+	return contests, nil
+}
+
+func (r *ContestRepository) UpdateProblemStatus(contestID model.ContestId, problemLabel model.ProblemLabel, status model.ContestProblemStatus) error {
+	return r.db.Model(&model.Contest{}).
+		Where("id = ?", contestID).
+		Update("problem_status", gorm.Expr("JSON_SET(problem_status, ?, ?)",
+			"$."+string(problemLabel), status)).
+		Error
+}
+
+func (r *ContestRepository) GetProblemStatus(contestID model.ContestId, problemID model.ProblemId) (*model.ContestProblemStatus, error) {
+	var contest model.Contest
+	if err := r.db.Select("problem_status").First(&contest, contestID).Error; err != nil {
+		return nil, err
+	}
+
+	if status, ok := contest.ProblemStatus[problemID]; ok {
+		return &status, nil
+	}
+	return nil, nil
 }

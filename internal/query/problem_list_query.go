@@ -59,5 +59,11 @@ func (r *ProblemListQuery) List(filter *model.ProblemFilter, userID *model.UserI
 		return nil, 0, err
 	}
 
+	for i := range problems {
+		if problems[i].Judgements == nil {
+			problems[i].Judgements = make([]model.Judgement, 0)
+		}
+	}
+
 	return problems, total, nil
 }

@@ -100,7 +100,7 @@ func (c *AuthController) SetPassword(ctx *gin.Context) {
 	isSelf  := operator.ID == req.User;
 
 	if !isSuper && !isSelf {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "No permission"})
+		ctx.AbortWithStatus(http.StatusForbidden)
 		return
 	}
 

@@ -23,7 +23,7 @@ func (r *SubmissionRepository) Update(submission *model.Submission) error {
 	return r.db.Save(submission).Error
 }
 
-func (r *SubmissionRepository) GetByID(id int64) (*model.Submission, error) {
+func (r *SubmissionRepository) GetByID(id model.SubmissionId) (*model.Submission, error) {
 	var submission model.Submission
 	if err := r.db.First(&submission, id).Error; err != nil {
 		return nil, err
@@ -67,4 +67,18 @@ func (r *SubmissionRepository) List(filter *model.SubmissionFilter, page, pageSi
 	}
 
 	return submissions, total, nil
+}
+
+func (r *SubmissionRepository) CheckHasPending(contestID model.ContestId) (bool, error) {
+	var total int64
+
+	query := r.db.Model(&model.Submission{}).
+		Where("contest_id = ? AND verdict IN ?", contestID, []model.VerdictId{model.VerdictPD, model.VerdictJD})
+
+	// 获取总数
+	if err := query.Count(&total).Error; err != nil {
+		return false, err
+	}
+
+	return total > 0, nil
 }

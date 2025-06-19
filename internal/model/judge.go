@@ -9,25 +9,79 @@ import (
 
 const (
 	VerdictPD  VerdictId = "PD"
+	VerdictJD  VerdictId = "JD"
 	VerdictAC  VerdictId = "AC"
 	VerdictWA  VerdictId = "WA"
 	VerdictRE  VerdictId = "RE"
 	VerdictTLE VerdictId = "TLE"
 	VerdictMLE VerdictId = "MLE"
+	VerdictOLE VerdictId = "OLE"
 	VerdictCE  VerdictId = "CE"
 	VerdictUKE VerdictId = "UKE"
+)
+
+
+type RunRequestPayload struct {
+	Cmd         []Cmd       `json:"cmd"`
+	PipeMapping []PipeMap   `json:"pipeMapping,omitempty"`
+	RequestID   string      `json:"requestId,omitempty"`
+}
+
+type PipeMap struct {
+	In     PipeIndex `json:"in"`
+	Out    PipeIndex `json:"out"`
+	Proxy  bool      `json:"proxy,omitempty"`
+	Name   string    `json:"name,omitempty"`
+	Max    uint64    `json:"max,omitempty"`
+}
+
+type PipeIndex struct {
+	Index int `json:"index"`
+	FD    int `json:"fd"`
+}
+
+type Cmd struct {
+	Args              []string              `json:"args"`
+	Env               []string              `json:"env,omitempty"`
+	Files             []any                 `json:"files,omitempty"`
+	TTY               bool                  `json:"tty,omitempty"`
+	CPULimit          uint64                `json:"cpuLimit,omitempty"`
+	ClockLimit        uint64                `json:"clockLimit,omitempty"`
+	MemoryLimit       uint64                `json:"memoryLimit,omitempty"`
+	StackLimit        uint64                `json:"stackLimit,omitempty"`
+	ProcLimit         uint64                `json:"procLimit,omitempty"`
+	CPURateLimit      uint64                `json:"cpuRateLimit,omitempty"`
+	CPUSetLimit       string                `json:"cpuSetLimit,omitempty"`
+	StrictMemoryLimit bool                  `json:"strictMemoryLimit,omitempty"` // deprecated
+	DataSegmentLimit  bool                  `json:"dataSegmentLimit,omitempty"`
+	AddressSpaceLimit bool                  `json:"addressSpaceLimit,omitempty"`
+	CopyIn            map[string]any        `json:"copyIn,omitempty"`
+	CopyOut           []string              `json:"copyOut,omitempty"`
+	CopyOutCached     []string              `json:"copyOutCached,omitempty"`
+	CopyOutMax        uint64                `json:"copyOutMax,omitempty"`
+}
+
+const (
+	StatusAccepted            = "Accepted"              // 正常情况
+	StatusMemoryLimitExceeded = "Memory Limit Exceeded" // 内存超限
+	StatusTimeLimitExceeded   = "Time Limit Exceeded"   // 时间超限
+	StatusOutputLimitExceeded = "Output Limit Exceeded" // 输出超限
+	StatusFileError           = "File Error"            // 文件错误
+	StatusNonzeroExitStatus   = "Nonzero Exit Status"   // 非 0 退出值
+	StatusSignalled           = "Signalled"             // 进程被信号终止
+	StatusInternalError       = "Internal Error"        // 内部错误
 )
 
 // 测试点详情
 type Testcase struct {
 	ID      int       `json:"id"`
 	Verdict VerdictId `json:"verdict"`
-	Time    *int      `json:"time,omitempty"`
-	Memory  *int      `json:"memory,omitempty"`
-	Score   *int      `json:"score,omitempty"`
-	Input   *string   `json:"input,omitempty"`
-	Output  *string   `json:"output,omitempty"`
-	Checker *string   `json:"checker,omitempty"`
+	Time    *int      `json:"time,omitempty"`    // 该测试点用时
+	Memory  *int      `json:"memory,omitempty"`  // 该测试点空间
+	Score   *int      `json:"score,omitempty"`   // 该测试点得分
+	Input   *string   `json:"input,omitempty"`   // 输入内容摘要
+	Output  *string   `json:"output,omitempty"`  // 输出内容摘要
+	Checker *string   `json:"checker,omitempty"` // 校验器输出信息（包括 UKE 错误信息）
 }
 
 type TestcaseList []Testcase
@@ -144,7 +198,7 @@ type SubmissionListResponse struct {
 
 // 记录详情请求
 type SubmissionDetailRequest struct {
-	ID int64 `json:"id"`
+	ID SubmissionId `json:"id"`
 }
 
 // 记录详情响应
@@ -157,7 +211,7 @@ type Judgement struct {
 	ProblemID  ProblemId  `gorm:"primaryKey" json:"problem"`
 	UserID     UserId     `gorm:"primaryKey" json:"user"`
 	Judge      string     `json:"judge"`
-	Difficulty int        `json:"difficulty"`	// 防止练习数据大量查询
+	Difficulty int        `json:"difficulty"`      // 防止练习数据大量查询
 	Stamp      *time.Time `json:"stamp,omitempty"` // 通过时间
 }
 
@@ -192,4 +246,26 @@ type JudgementUpdateRequest struct {
 // 结果更新响应
 type JudgementUpdateResponse struct {
 	Ranking Ranking
+}
+
+// 评测配置
+type JudgeConfig struct {
+	TimeLimit      int              `json:"timeLimit"`
+	MemoryLimit    int              `json:"memoryLimit"`
+	TestCases      []TestCaseConfig `json:"testCases"`
+	CheckerType    string           `json:"checkerType"`    // "strict", "custom", "float"
+}
+
+// 测试用例配置
+type TestCaseConfig struct {
+	ID         int    `json:"id"`
+	InputFile  string `json:"inputFile"`  // 输入文件（绝对位置）
+	OutputFile string `json:"outputFile"` // 答案文件（绝对位置）
+	Score      int    `json:"score"`      // 测试点分值
+}
+
+// 评测任务
+type JudgeTask struct {
+	Submission
+	Config JudgeConfig // 评测配置
 }

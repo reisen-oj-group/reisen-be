@@ -14,9 +14,12 @@ var SystemConfig = model.SyncConfigResponse{
 		"zh-TW": {ID: "zh-TW", Description: "繁体中文"},
 	},
 	CodeLangs: map[string]model.CodeLang{
-		"cpp":    {ID: "cpp", Ext: []string{".cpp", ".cc", ".cxx"}, Description: "C++ 11", Ratio: 1},
-		"java":   {ID: "java", Ext: []string{".java"}, Description: "Java 11", Ratio: 2},
-		"python": {ID: "python", Ext: []string{".py"}, Description: "Python 3.8", Ratio: 3},
+		"pas":    {ID: "pas", Ext: []string{".pas"}, Description: "Free Pascal 3.2.2", Ratio: 1},
+		"c":      {ID: "c", Ext: []string{".c"}, Description: "C11 9.3.1", Ratio: 1},
+		"cpp98":  {ID: "cpp98", Ext: []string{}, Description: "C++98 9.3.1", Ratio: 1},
+		"cpp11":  {ID: "cpp11", Ext: []string{}, Description: "C++11 9.3.1", Ratio: 1},
+		"cpp14":  {ID: "cpp14", Ext: []string{".cpp", ".cc", ".cxx"}, Description: "C++14 9.3.1", Ratio: 1},
+		"python": {ID: "python", Ext: []string{".py"}, Description: "Python 3.8", Ratio: 2},
 	},
 	Verdicts: map[string]model.Verdict{
 		"AC":  {ID: "AC", Description: "Accepted", Abbr: "AC", Color: "#67C23A"},
@@ -24,8 +27,11 @@ var SystemConfig = model.SyncConfigResponse{
 		"RE":  {ID: "RE", Description: "Runtime Error", Abbr: "RE", Color: "#6A3BC0"},
 		"TLE": {ID: "TLE", Description: "Time Limit Exceeded", Abbr: "TLE", Color: "#E6A23C"},
 		"MLE": {ID: "MLE", Description: "Memory Limit Exceeded", Abbr: "MLE", Color: "#E6A23C"},
-		"CE":  {ID: "CE", Description: "Compile Error", Abbr: "CE", Color: "#909399"},
+		"OLE": {ID: "OLE", Description: "Output Limit Exceeded", Abbr: "OLE", Color: "#E6A23C"},
+		"CE":  {ID: "CE", Description: "Compile Error", Abbr: "CE", Color: "#FFC116"},
 		"UKE": {ID: "UKE", Description: "Unknown Error", Abbr: "UKE", Color: "#909399"},
+		"PD":  {ID: "PD", Description: "Pending", Abbr: "Pending", Color: "#89D1F5"},
+		"JD":  {ID: "JD", Description: "Judging", Abbr: "Judging", Color: "#3498DB"},
 	},
 	Difficulties: []model.Level{
 		{Min: 0, Max: 0, Name: "未知"},

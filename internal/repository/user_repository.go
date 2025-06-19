@@ -87,3 +87,11 @@ func (r *UserRepository) UpdatePassword(userID model.UserId, hashedPwd string) e
 func (r *UserRepository) Delete(userID model.UserId) error {
 	return r.db.Delete(&model.User{}, userID).Error
 }
+
+func (r *UserRepository) UpdateAvatar(userID model.UserId, avatarPath string) error {
+	return r.db.
+		Model(&model.User{}).
+		Where("id = ?", userID).
+		Update("avatar", avatarPath).
+		Error
+}
